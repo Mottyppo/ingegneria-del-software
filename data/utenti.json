@@ -1,0 +1,12 @@
+[
+  {
+    "primoAccesso": false,
+    "username": "motty",
+    "password": "password"
+  },
+  {
+    "primoAccesso": true,
+    "username": "config2",
+    "password": "config2"
+  }
+]
