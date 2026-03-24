@@ -2,24 +2,19 @@ package it.unibs.ingesw.lib;
 
 import java.util.StringJoiner;
 
-/**
- * <code>Class</code> that let's you prettify the strings to output in the terminal.
- * 
- * @author Alessandro Muscio (Kibo)
- */
-public class PrettyStrings {
-  private static final String UNSUPPORTED_OP_ERR_MSG = String.format("%sThis class isn't instantiable!%s",
+public class FormatStrings {
+  private static final String UNSUPPORTED_OP_ERR_MSG = String.format("%sQuesta classe non e' istanziabile!%s",
       AnsiColors.RED, AnsiColors.RESET);
   private static final char SPACE = ' ';
   private static final char NEW_LINE = '\n';
 
-  private PrettyStrings() throws UnsupportedOperationException {
-    throw new UnsupportedOperationException(PrettyStrings.UNSUPPORTED_OP_ERR_MSG);
+  private FormatStrings() throws UnsupportedOperationException {
+    throw new UnsupportedOperationException(FormatStrings.UNSUPPORTED_OP_ERR_MSG);
   }
 
   public static String frame(String toFrame, FrameSettings settings) {
-    String hFrame = PrettyStrings.repeatChar(settings.getHorizontalFrame(), settings.getWidth());
-    StringJoiner framed = new StringJoiner(String.valueOf(PrettyStrings.NEW_LINE));
+    String hFrame = FormatStrings.repeatChar(settings.getHorizontalFrame(), settings.getWidth());
+    StringJoiner framed = new StringJoiner(String.valueOf(FormatStrings.NEW_LINE));
 
     framed.add(hFrame);
 
@@ -33,10 +28,10 @@ public class PrettyStrings {
 
     int offset = settings.isVerticalFrameEnabled() ? 1 : 0;
     if (settings.getAlignment().equals(Alignment.CENTER))
-      titleLine.insert(offset, PrettyStrings.center(toFrame, settings.getWidth()));
+      titleLine.insert(offset, FormatStrings.center(toFrame, settings.getWidth()));
     else
       // @formatter:off
-      titleLine.insert(offset, PrettyStrings.column(
+      titleLine.insert(offset, FormatStrings.column(
         toFrame, 
         settings.getWidth(), 
         settings.getAlignment().equals(Alignment.LEFT)
@@ -61,7 +56,7 @@ public class PrettyStrings {
    */
   public static String column(String toColumnize, int width, boolean left) {
     String columned = toColumnize.length() > width ? toColumnize.substring(0, width) : toColumnize;
-    String spaces = PrettyStrings.repeatChar(PrettyStrings.SPACE, width - columned.length());
+    String spaces = FormatStrings.repeatChar(FormatStrings.SPACE, width - columned.length());
 
     return left ? columned.concat(spaces) : spaces.concat(columned);
   }
@@ -88,9 +83,9 @@ public class PrettyStrings {
     int whitespacesBefore = Math.floorDiv(whitespaces, 2);
     int whitespacesAfter = whitespaces - whitespacesBefore;
 
-    builder.append(PrettyStrings.repeatChar(PrettyStrings.SPACE, whitespacesBefore));
+    builder.append(FormatStrings.repeatChar(FormatStrings.SPACE, whitespacesBefore));
     builder.append(toCenter);
-    builder.append(PrettyStrings.repeatChar(PrettyStrings.SPACE, whitespacesAfter));
+    builder.append(FormatStrings.repeatChar(FormatStrings.SPACE, whitespacesAfter));
 
     return builder.toString();
   }
@@ -113,23 +108,20 @@ public class PrettyStrings {
    * 
    * @param toIsolate The <code>String</code> to isolate.
    * 
-   * @return A <code>String</code> isolated in it's own line.
+   * @return A <code>String</code> isolated in its own line.
    */
   public static String isolatedLine(String toIsolate) {
-    StringBuilder builder = new StringBuilder();
 
-    builder.append(PrettyStrings.NEW_LINE);
-    builder.append(toIsolate);
-    builder.append(PrettyStrings.NEW_LINE);
-
-    return builder.toString();
+      return FormatStrings.NEW_LINE +
+              toIsolate +
+              FormatStrings.NEW_LINE;
   }
 
   /**
-   * Prettifies the given <code>String</code> by adding a <i>color</i>, <i>weight</i> and
+   * Formats the given <code>String</code> by adding a <i>color</i>, <i>weight</i> and
    * <i>decoration</i>, if given.
    * 
-   * @param toPrettify The <code>String</code> to be prettified.
+   * @param toFormat The <code>String</code> to be formatted.
    * @param color      The color given to the <code>String</code>, <code>null</code> for default
    *                   color.
    * @param weight     The weight given to the <code>String</code>, <code>null</code> for default
@@ -137,9 +129,9 @@ public class PrettyStrings {
    * @param decoration The decoration given to the <code>String</code>, <code>null</code> for no
    *                   decoration.
    * 
-   * @return A <code>String</code> representing the given one prettified.
+   * @return A <code>String</code> representing the given one formatted.
    */
-  public static String prettify(String toPrettify, AnsiColors color, AnsiWeights weight, AnsiDecorations decoration) {
+  public static String addFormat(String toFormat, AnsiColors color, AnsiWeights weight, AnsiDecorations decoration) {
     StringBuilder builder = new StringBuilder();
     boolean reset = false;
 
@@ -158,7 +150,7 @@ public class PrettyStrings {
       builder.append(decoration);
     }
 
-    builder.append(toPrettify);
+    builder.append(toFormat);
 
     if (reset)
       builder.append(AnsiColors.RESET);

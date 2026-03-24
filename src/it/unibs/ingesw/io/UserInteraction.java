@@ -5,31 +5,30 @@ import it.unibs.ingesw.lib.Alignment;
 import it.unibs.ingesw.lib.CommandLineTable;
 import it.unibs.ingesw.lib.InputData;
 import it.unibs.ingesw.lib.Menu;
-import it.unibs.ingesw.model.Campo;
-import it.unibs.ingesw.model.Categoria;
-import it.unibs.ingesw.model.Configuratore;
-import it.unibs.ingesw.model.TipoCampo;
-import it.unibs.ingesw.model.TipoDato;
+import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.Category;
+import it.unibs.ingesw.model.Configurator;
+import it.unibs.ingesw.model.FieldType;
+import it.unibs.ingesw.model.DataType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-//TODO: everything here
-
 public class UserInteraction {
-    private static final List<String[]> CAMPI_BASE = List.of(
-            new String[]{"Titolo", "nome di fantasia (esplicativo) attribuito all'iniziativa"},
-            new String[]{"Numero di partecipanti", "numero di persone da coinvolgere nell'iniziativa"},
-            new String[]{"Termine ultimo di iscrizione", "ultimo giorno utile per iscriversi all'iniziativa"},
-            new String[]{"Luogo", "indirizzo del luogo che ospitera' l'iniziativa"},
-            new String[]{"Data", "data di inizio dell'iniziativa"},
-            new String[]{"Ora", "ora di ritrovo dei partecipanti"},
-            new String[]{"Quota individuale", "spesa individuale stimata per l'iniziativa"},
-            new String[]{"Data conclusiva", "data di conclusione dell'iniziativa"}
+    private static final List<String[]> BASE_FIELDS = List.of(
+        new String[]{"Titolo", "nome di fantasia (esplicativo) attribuito all'iniziativa"},
+        new String[]{"Numero di partecipanti", "numero di persone da coinvolgere nell'iniziativa"},
+        new String[]{"Termine ultimo di iscrizione", "ultimo giorno utile per iscriversi all'iniziativa"},
+        new String[]{"Luogo", "indirizzo del luogo che ospitera' l'iniziativa"},
+        new String[]{"Data", "data di inizio dell'iniziativa"},
+        new String[]{"Ora", "ora di ritrovo dei partecipanti"},
+        new String[]{"Quota individuale", "spesa individuale stimata per l'iniziativa"},
+        new String[]{"Data conclusiva", "data di conclusione dell'iniziativa"}
     );
 
     private final SystemManager manager;
@@ -40,43 +39,51 @@ public class UserInteraction {
 
     public void start() {
         Menu.clearConsole();
+        System.out.println(
+            "██ ▄▄  ▄▄  ▄▄▄▄ ▄▄▄▄▄  ▄▄▄▄ ▄▄  ▄▄ ▄▄▄▄▄ ▄▄▄▄  ▄▄  ▄▄▄    ▄▄▄▄  ▄▄▄▄▄ ▄▄      ▄█████  ▄▄▄  ▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄   ▄▄  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄\n" +
+            "██ ███▄██ ██ ▄▄ ██▄▄  ██ ▄▄ ███▄██ ██▄▄  ██▄█▄ ██ ██▀██   ██▀██ ██▄▄  ██      ▀▀▀▄▄▄ ██▀██ ██▄▄    ██   ██ ▄ ██ ██▀██ ██▄█▄ ██▄▄\n" +
+            "██ ██ ▀██ ▀███▀ ██▄▄▄ ▀███▀ ██ ▀██ ██▄▄▄ ██ ██ ██ ██▀██   ████▀ ██▄▄▄ ██▄▄▄   █████▀ ▀███▀ ██      ██    ▀█▀█▀  ██▀██ ██ ██ ██▄▄▄\n\n" +
+            "Masciali Luca - 747335\n" +
+            "Mottinelli Matteo - 745550\n" +
+            "Nizzotti Mattia - 746348\n"
+        );
+
         System.out.println("=== Backend Configuratore ===");
-        Configuratore configuratore = login();
-        if (configuratore == null) {
-            return;
+        Configurator configurator = login();
+        if (configurator == null) return;
+
+        if (configurator.isFirstAccess()) {
+            manageFirstAccess(configurator);
         }
 
-        if (configuratore.isPrimoAccesso()) {
-            gestisciPrimoAccesso(configuratore);
-        }
-
-        if (!manager.isCampiBaseImpostati()) {
+        if (!manager.areBaseFieldsSet()) {
             System.out.println("\nPrima configurazione: impostazione campi base.");
-            setupCampiBase();
+            setupBaseFields();
         }
 
-        menuPrincipale();
+        mainMenu();
     }
 
-    private Configuratore login() {
+    public void end() {
+        System.out.println("\n=== Chiusura programma ===");
+    }
+
+    private Configurator login() {
         while (true) {
             String username = InputData.readNonEmptyString("Username: ", true).trim();
             String password = InputData.readNonEmptyString("Password: ", false);
-            Configuratore configuratore = manager.autenticaConfiguratore(username, password);
-            if (configuratore != null) {
-                return configuratore;
-            }
+            Configurator configurator = manager.authenticateConfigurator(username, password);
+            if (configurator != null) return configurator;
             System.out.println("Credenziali non valide. Riprova.\n");
         }
     }
 
-    private void gestisciPrimoAccesso(Configuratore configuratore) {
+    private void manageFirstAccess(Configurator configurator) {
         System.out.println("\nPrimo accesso: scegli le tue credenziali personali.");
         while (true) {
-            String nuovoUsername = InputData.readNonEmptyString("Nuovo username: ", true).trim();
-            String nuovaPassword = InputData.readNonEmptyString("Nuova password: ", false);
-            boolean ok = manager.aggiornaCredenziali(configuratore, nuovoUsername, nuovaPassword);
-            if (ok) {
+            String newUsername = InputData.readNonEmptyString("Nuovo username: ", true).trim();
+            String newPassword = InputData.readNonEmptyString("Nuova password: ", false);
+            if (manager.updateCredentials(configurator, newUsername, newPassword)) {
                 System.out.println("Credenziali aggiornate con successo.\n");
                 return;
             }
@@ -84,298 +91,229 @@ public class UserInteraction {
         }
     }
 
-    private void setupCampiBase() {
-        List<Campo> campi = new ArrayList<>();
-        for (String[] definizione : CAMPI_BASE) {
-            String nome = definizione[0];
-            String descrizione = definizione[1];
-            TipoDato tipoDato = scegliTipoDato("Scegli il tipo dato per il campo base \"" + nome + "\"");
-            if (tipoDato == null) {
+    private void setupBaseFields() {
+        List<Field> fields = new ArrayList<>();
+        Set<String> localNames = new HashSet<>();
+
+        for (String[] field : BASE_FIELDS) {
+            DataType dataType = chooseDataType("Scegli il tipo di dato per il campo base \"" + field[0] + "\"");
+            if (dataType == null) {
                 System.out.println("Operazione annullata.\n");
                 return;
             }
-            campi.add(new Campo(nome, descrizione, true, TipoCampo.BASE, tipoDato));
+            fields.add(new Field(field[0], field[1], true, FieldType.BASE, dataType));
+            localNames.add(field[0].toLowerCase());
         }
 
-        boolean success = manager.impostaCampiBase(campi);
-        if (success) {
-            System.out.println("Campi base impostati correttamente.\n");
-        } else {
-            System.out.println("I campi base risultano gia' impostati.\n");
+        System.out.println("Tipi di dato dei campi base inseriti.");
+
+        while (InputData.readYesOrNo("Vuoi aggiungere un altro campo base")) {
+            Field customField = promptForNewField(FieldType.BASE, true, null, localNames);
+            if (customField != null) {
+                fields.add(customField);
+                localNames.add(customField.getName().toLowerCase());
+            }
         }
+
+        executeAndPrint(manager.setBaseFields(fields), "Campi base impostati correttamente.", "I campi base risultano gia' impostati.");
     }
 
-    private void menuPrincipale() {
+    private void mainMenu() {
         boolean exit = false;
         while (!exit) {
             List<String> entries = new ArrayList<>();
-            if (manager.isCampiBaseImpostati()) {
-                entries.add("Visualizza campi base");
-            } else {
-                entries.add("Imposta campi base");
-            }
+            entries.add(manager.areBaseFieldsSet() ? "Visualizza campi base" : "Imposta campi base");
             entries.add("Gestisci campi comuni");
             entries.add("Gestisci categorie");
             entries.add("Visualizza categorie e campi");
 
-            Menu menu = new Menu("Menu Configuratore", entries, true, Alignment.CENTER, true);
-            int choice = menu.choose();
+            int choice = new Menu("Menu Configuratore", entries, true, Alignment.CENTER, true).choose();
             switch (choice) {
                 case 0 -> exit = true;
                 case 1 -> {
-                    if (manager.isCampiBaseImpostati()) {
-                        visualizzaCampi("Campi base", manager.getCampiBase());
-                    } else {
-                        setupCampiBase();
-                    }
+                    if (manager.areBaseFieldsSet()) showFields("Campi base", manager.getBaseFields());
+                    else setupBaseFields();
+                }
+                case 2 -> { if (requireBaseFields()) commonFieldsMenu(); }
+                case 3 -> { if (requireBaseFields()) categoriesMenu(); }
+                case 4 -> { if (requireBaseFields()) showFullCategories(); }
+                default -> System.out.println("Scelta non valida.");
+            }
+        }
+    }
+
+    private boolean requireBaseFields() {
+        if (!manager.areBaseFieldsSet()) {
+            System.out.println("Prima imposta i campi base.\n");
+            return false;
+        }
+        return true;
+    }
+
+    private void commonFieldsMenu() {
+        boolean exit = false;
+        while (!exit) {
+            int choice = new Menu("Campi Comuni", List.of("Aggiungi campo comune", "Rimuovi campo comune", "Cambia obbligatorieta'", "Visualizza campi comuni"), true, Alignment.CENTER, true).choose();
+            switch (choice) {
+                case 0 -> exit = true;
+                case 1 -> {
+                    Field field = promptForNewField(FieldType.COMMON, false, null, null);
+                    if (field != null) executeAndPrint(manager.addCommonField(field), "Campo comune aggiunto.", "Impossibile aggiungere il campo comune.");
                 }
                 case 2 -> {
-                    if (manager.isCampiBaseImpostati()) {
-                        menuCampiComuni();
-                    } else {
-                        System.out.println("Prima imposta i campi base.\n");
-                    }
+                    int index = chooseIndex(manager.getCommonFields(), "Seleziona il campo comune da rimuovere", Field::getName);
+                    if (index >= 0) executeAndPrint(manager.removeCommonField(index), "Campo comune rimosso.", "Impossibile rimuovere il campo comune.");
                 }
                 case 3 -> {
-                    if (manager.isCampiBaseImpostati()) {
-                        menuCategorie();
-                    } else {
-                        System.out.println("Prima imposta i campi base.\n");
-                    }
+                    int index = chooseIndex(manager.getCommonFields(), "Seleziona il campo comune da modificare", Field::getName);
+                    if (index >= 0) executeAndPrint(manager.toggleMandatorinessCommonField(index), "Obbligatorieta' aggiornata.", "Impossibile aggiornare il campo comune.");
                 }
-                case 4 -> {
-                    if (manager.isCampiBaseImpostati()) {
-                        visualizzaCategorieComplete();
-                    } else {
-                        System.out.println("Prima imposta i campi base.\n");
-                    }
-                }
+                case 4 -> showFields("Campi comuni", manager.getCommonFields());
                 default -> System.out.println("Scelta non valida.");
             }
         }
     }
 
-    private void menuCampiComuni() {
+    private void categoriesMenu() {
         boolean exit = false;
         while (!exit) {
-            Menu menu = new Menu("Campi Comuni",
-                    List.of("Aggiungi campo comune", "Rimuovi campo comune", "Cambia obbligatorieta'", "Visualizza campi comuni"),
-                    true, Alignment.CENTER, true);
-            int scelta = menu.choose();
-            switch (scelta) {
+            int choice = new Menu("Categorie", List.of("Aggiungi categoria", "Rimuovi categoria", "Gestisci campi specifici", "Visualizza categorie e campi"), true, Alignment.CENTER, true).choose();
+            switch (choice) {
                 case 0 -> exit = true;
-                case 1 -> aggiungiCampoComune();
-                case 2 -> rimuoviCampoComune();
-                case 3 -> toggleCampoComune();
-                case 4 -> visualizzaCampi("Campi comuni", manager.getCampiComuni());
+                case 1 -> addCategory();
+                case 2 -> {
+                    int index = chooseIndex(manager.getCategories(), "Seleziona la categoria da rimuovere", Category::getName);
+                    if (index >= 0) executeAndPrint(manager.removeCategory(index), "Categoria rimossa.", "Impossibile rimuovere la categoria.");
+                }
+                case 3 -> manageSpecificFields();
+                case 4 -> showFullCategories();
                 default -> System.out.println("Scelta non valida.");
             }
         }
     }
 
-    private void aggiungiCampoComune() {
-        String nome = InputData.readNonEmptyString("Nome campo comune: ", false).trim();
-        if (!manager.isNomeCampoCategoriaDisponibile(nome, null)) {
-            System.out.println("Nome campo gia' in uso (tra base o comuni).\n");
-            return;
-        }
-        String descrizione = InputData.readNonEmptyString("Descrizione: ", false).trim();
-        boolean obbligatorio = InputData.readYesOrNo("Il campo e' obbligatorio");
-        TipoDato tipoDato = scegliTipoDato("Scegli tipo dato");
-        if (tipoDato == null) {
-            System.out.println("Operazione annullata.\n");
-            return;
-        }
-        Campo campo = new Campo(nome, descrizione, obbligatorio, TipoCampo.COMUNE, tipoDato);
-        if (manager.aggiungiCampoComune(campo)) {
-            System.out.println("Campo comune aggiunto.\n");
-        } else {
-            System.out.println("Impossibile aggiungere il campo comune.\n");
-        }
-    }
-
-    private void rimuoviCampoComune() {
-        List<Campo> campi = manager.getCampiComuni();
-        int index = scegliIndiceCampo(campi, "Seleziona il campo comune da rimuovere");
-        if (index < 0) {
-            return;
-        }
-        if (manager.rimuoviCampoComune(index)) {
-            System.out.println("Campo comune rimosso.\n");
-        } else {
-            System.out.println("Impossibile rimuovere il campo comune.\n");
-        }
-    }
-
-    private void toggleCampoComune() {
-        List<Campo> campi = manager.getCampiComuni();
-        int index = scegliIndiceCampo(campi, "Seleziona il campo comune da modificare");
-        if (index < 0) {
-            return;
-        }
-        if (manager.modificaObbligatorioCampoComune(index)) {
-            System.out.println("Obbligatorieta' aggiornata.\n");
-        } else {
-            System.out.println("Impossibile aggiornare il campo comune.\n");
-        }
-    }
-
-    private void menuCategorie() {
-        boolean exit = false;
-        while (!exit) {
-            Menu menu = new Menu("Categorie",
-                    List.of("Aggiungi categoria", "Rimuovi categoria", "Gestisci campi specifici", "Visualizza categorie"),
-                    true, Alignment.CENTER, true);
-            int scelta = menu.choose();
-            switch (scelta) {
-                case 0 -> exit = true;
-                case 1 -> aggiungiCategoria();
-                case 2 -> rimuoviCategoria();
-                case 3 -> gestisciCampiSpecifici();
-                case 4 -> visualizzaCategorieComplete();
-                default -> System.out.println("Scelta non valida.");
-            }
-        }
-    }
-
-    private void aggiungiCategoria() {
-        String nome = InputData.readNonEmptyString("Nome categoria: ", false).trim();
-        if (!manager.isNomeCategoriaDisponibile(nome)) {
+    private void addCategory() {
+        String name = InputData.readNonEmptyString("Nome categoria: ", false).trim();
+        if (!manager.isCategoryNameAvailable(name)) {
             System.out.println("Nome categoria gia' in uso.\n");
             return;
         }
 
-        List<Campo> campiSpecifici = new ArrayList<>();
-        Set<String> nomiSpecifici = new HashSet<>();
+        List<Field> specificFields = new ArrayList<>();
+        Set<String> specificNames = new HashSet<>();
 
-        boolean aggiungi = InputData.readYesOrNo("Vuoi aggiungere un campo specifico");
-        while (aggiungi) {
-            Campo campo = creaCampoSpecifico(nomiSpecifici);
-            if (campo != null) {
-                campiSpecifici.add(campo);
-                nomiSpecifici.add(campo.getNome().toLowerCase());
+        while (InputData.readYesOrNo("Vuoi aggiungere un campo specifico")) {
+            Field field = promptForNewField(FieldType.SPECIFIC, false, null, specificNames);
+            if (field != null) {
+                specificFields.add(field);
+                specificNames.add(field.getName().toLowerCase());
             }
-            aggiungi = InputData.readYesOrNo("Aggiungere un altro campo specifico");
         }
 
-        if (manager.aggiungiCategoria(nome, campiSpecifici)) {
-            System.out.println("Categoria aggiunta.\n");
-        } else {
-            System.out.println("Impossibile aggiungere la categoria.\n");
-        }
+        executeAndPrint(manager.addCategory(name, specificFields), "Categoria aggiunta.", "Impossibile aggiungere la categoria.");
     }
 
-    private void rimuoviCategoria() {
-        int index = scegliIndiceCategoria("Seleziona la categoria da rimuovere");
-        if (index < 0) {
-            return;
-        }
-        if (manager.rimuoviCategoria(index)) {
-            System.out.println("Categoria rimossa.\n");
-        } else {
-            System.out.println("Impossibile rimuovere la categoria.\n");
-        }
-    }
+    private void manageSpecificFields() {
+        int catIndex = chooseIndex(manager.getCategories(), "Seleziona la categoria", Category::getName);
+        if (catIndex < 0) return;
 
-    private void gestisciCampiSpecifici() {
-        int catIndex = scegliIndiceCategoria("Seleziona la categoria");
-        if (catIndex < 0) {
-            return;
-        }
-        Categoria categoria = manager.getCategorie().get(catIndex);
+        Category category = manager.getCategories().get(catIndex);
         boolean exit = false;
+
         while (!exit) {
-            Menu menu = new Menu("Campi specifici: " + categoria.getNome(),
-                    List.of("Aggiungi campo specifico", "Rimuovi campo specifico", "Cambia obbligatorieta'", "Visualizza campi"),
-                    true, Alignment.CENTER, true);
-            int scelta = menu.choose();
-            switch (scelta) {
+            int choice = new Menu("Campi specifici: " + category.getName(), List.of("Aggiungi campo specifico", "Rimuovi campo specifico", "Cambia obbligatorieta'", "Visualizza campi specifici"), true, Alignment.CENTER, true).choose();
+            switch (choice) {
                 case 0 -> exit = true;
-                case 1 -> aggiungiCampoSpecifico(catIndex, categoria);
-                case 2 -> rimuoviCampoSpecifico(catIndex, categoria);
-                case 3 -> toggleCampoSpecifico(catIndex, categoria);
-                case 4 -> visualizzaCampi("Campi specifici - " + categoria.getNome(), categoria.getCampiSpecifici());
+                case 1 -> {
+                    Field field = promptForNewField(FieldType.SPECIFIC, false, category, null);
+                    if (field != null) executeAndPrint(manager.addSpecificField(catIndex, field), "Campo specifico aggiunto.", "Impossibile aggiungere il campo specifico.");
+                }
+                case 2 -> {
+                    int fieldIndex = chooseIndex(category.getSpecificFields(), "Seleziona il campo da rimuovere", Field::getName);
+                    if (fieldIndex >= 0) executeAndPrint(manager.removeSpecificField(catIndex, fieldIndex), "Campo specifico rimosso.", "Impossibile rimuovere il campo specifico.");
+                }
+                case 3 -> {
+                    int fieldIndex = chooseIndex(category.getSpecificFields(), "Seleziona il campo da modificare", Field::getName);
+                    if (fieldIndex >= 0) executeAndPrint(manager.toggleMandatorinessSpecificField(catIndex, fieldIndex), "Obbligatorieta' aggiornata.", "Impossibile aggiornare il campo specifico.");
+                }
+                case 4 -> showFields("Campi specifici - " + category.getName(), category.getSpecificFields());
                 default -> System.out.println("Scelta non valida.");
             }
         }
     }
 
-    private void aggiungiCampoSpecifico(int catIndex, Categoria categoria) {
-        String nome = InputData.readNonEmptyString("Nome campo specifico: ", false).trim();
-        if (!manager.isNomeCampoCategoriaDisponibile(nome, categoria)) {
-            System.out.println("Nome campo gia' in uso (tra base, comuni o specifici).\n");
-            return;
-        }
-        String descrizione = InputData.readNonEmptyString("Descrizione: ", false).trim();
-        boolean obbligatorio = InputData.readYesOrNo("Il campo e' obbligatorio");
-        TipoDato tipoDato = scegliTipoDato("Scegli tipo dato");
-        if (tipoDato == null) {
-            System.out.println("Operazione annullata.\n");
-            return;
-        }
-        Campo campo = new Campo(nome, descrizione, obbligatorio, TipoCampo.SPECIFICO, tipoDato);
-        if (manager.aggiungiCampoSpecifico(catIndex, campo)) {
-            System.out.println("Campo specifico aggiunto.\n");
-        } else {
-            System.out.println("Impossibile aggiungere il campo specifico.\n");
-        }
-    }
+    /**
+     * Generalizza la richiesta di creazione di un nuovo campo (Base, Comune o Specifico).
+     * @param type Il tipo di campo da creare.
+     * @param forceMandatory Se true, salta la domanda "Il campo è obbligatorio?" e lo imposta a true.
+     * @param contextCategory La categoria in cui si sta inserendo il campo (può essere null).
+     * @param localReservedNames Un set opzionale di nomi attualmente in creazione ma non ancora salvati nel manager.
+     */
+    private Field promptForNewField(FieldType type, boolean forceMandatory, Category contextCategory, Set<String> localReservedNames) {
+        String name = InputData.readNonEmptyString("Nome campo: ", false).trim();
 
-    private void rimuoviCampoSpecifico(int catIndex, Categoria categoria) {
-        int campoIndex = scegliIndiceCampo(categoria.getCampiSpecifici(), "Seleziona il campo specifico da rimuovere");
-        if (campoIndex < 0) {
-            return;
-        }
-        if (manager.rimuoviCampoSpecifico(catIndex, campoIndex)) {
-            System.out.println("Campo specifico rimosso.\n");
-        } else {
-            System.out.println("Impossibile rimuovere il campo specifico.\n");
-        }
-    }
+        boolean takenGlobally = !manager.isFieldNameAvailableForCategory(name, contextCategory);
+        boolean takenLocally = localReservedNames != null && localReservedNames.contains(name.toLowerCase());
 
-    private void toggleCampoSpecifico(int catIndex, Categoria categoria) {
-        int campoIndex = scegliIndiceCampo(categoria.getCampiSpecifici(), "Seleziona il campo specifico da modificare");
-        if (campoIndex < 0) {
-            return;
-        }
-        if (manager.modificaObbligatorioCampoSpecifico(catIndex, campoIndex)) {
-            System.out.println("Obbligatorieta' aggiornata.\n");
-        } else {
-            System.out.println("Impossibile aggiornare il campo specifico.\n");
-        }
-    }
-
-    private Campo creaCampoSpecifico(Set<String> nomiSpecifici) {
-        String nome = InputData.readNonEmptyString("Nome campo specifico: ", false).trim();
-        if (nomiSpecifici.contains(nome.toLowerCase()) || !manager.isNomeCampoCategoriaDisponibile(nome, null)) {
+        if (takenGlobally || takenLocally) {
             System.out.println("Nome campo gia' in uso.\n");
             return null;
         }
-        String descrizione = InputData.readNonEmptyString("Descrizione: ", false).trim();
-        boolean obbligatorio = InputData.readYesOrNo("Il campo e' obbligatorio");
-        TipoDato tipoDato = scegliTipoDato("Scegli tipo dato");
-        if (tipoDato == null) {
+
+        String description = InputData.readNonEmptyString("Descrizione: ", false).trim();
+        boolean mandatory = forceMandatory || InputData.readYesOrNo("Il campo e' obbligatorio");
+        DataType dataType = chooseDataType("Scegli tipo dato per il campo");
+
+        if (dataType == null) {
+            System.out.println("Operazione annullata.\n");
             return null;
         }
-        return new Campo(nome, descrizione, obbligatorio, TipoCampo.SPECIFICO, tipoDato);
+
+        return new Field(name, description, mandatory, type, dataType);
     }
 
-    private void visualizzaCategorieComplete() {
-        List<Categoria> categorie = manager.getCategorie();
-        if (categorie.isEmpty()) {
+    /**
+     * Metodo generico per stampare un menu di scelta in base a una lista di oggetti arbitrari.
+     * @param items La lista da visualizzare.
+     * @param title Il titolo del menu.
+     * @param nameExtractor Funzione per estrarre la stringa da stampare per ogni oggetto.
+     * @return L'indice scelto, oppure -1 in caso di uscita/annullamento.
+     */
+    private <T> int chooseIndex(List<T> items, String title, Function<T, String> nameExtractor) {
+        if (items == null || items.isEmpty()) {
+            System.out.println("Nessun elemento disponibile.\n");
+            return -1;
+        }
+        List<String> entries = items.stream().map(nameExtractor).collect(Collectors.toList());
+        int choice = new Menu(title, entries, true, Alignment.CENTER, true).choose();
+        return choice == 0 ? -1 : choice - 1;
+    }
+
+    private DataType chooseDataType(String title) {
+        List<String> entries = Arrays.stream(DataType.values()).map(Enum::toString).collect(Collectors.toList());
+        int choice = new Menu(title, entries, true, Alignment.CENTER, true).choose();
+        return choice == 0 ? null : DataType.values()[choice - 1];
+    }
+
+    private void executeAndPrint(boolean result, String successMsg, String failMsg) {
+        System.out.println((result ? successMsg : failMsg) + "\n");
+    }
+
+    private void showFullCategories() {
+        List<Category> categories = manager.getCategories();
+        if (categories.isEmpty()) {
             System.out.println("Nessuna categoria presente.\n");
             return;
         }
-        for (Categoria categoria : categorie) {
-            System.out.println("\nCategoria: " + categoria.getNome());
-            List<Campo> campi = manager.getCampiCategoriaCondivisi(categoria);
-            visualizzaCampi("Campi", campi);
+        for (Category category : categories) {
+            System.out.println("\nCategoria: " + category.getName());
+            showFields("Campi", manager.getSharedFieldsForCategory(category));
         }
     }
 
-    private void visualizzaCampi(String titolo, List<Campo> campi) {
-        System.out.println("\n== " + titolo + " ==");
-        if (campi == null || campi.isEmpty()) {
+    private void showFields(String title, List<Field> fields) {
+        System.out.println("\n== " + title + " ==");
+        if (fields == null || fields.isEmpty()) {
             System.out.println("Nessun campo presente.\n");
             return;
         }
@@ -383,66 +321,16 @@ public class UserInteraction {
         table.setShowVLines(true);
         table.setCellsAlignment(Alignment.LEFT);
         table.addHeaders(List.of("N", "Nome", "Descrizione", "Obblig.", "Tipo", "Dato"));
+
         List<List<String>> rows = new ArrayList<>();
-        int i = 1;
-        for (Campo campo : campi) {
+        for (int i = 0; i < fields.size(); i++) {
+            Field f = fields.get(i);
             rows.add(List.of(
-                    String.valueOf(i++),
-                    campo.getNome(),
-                    campo.getDescrizione(),
-                    campo.isObbligatorio() ? "Si" : "No",
-                    campo.getTipo().name(),
-                    campo.getTipoDiDato().name()
+                    String.valueOf(i + 1), f.getName(), f.getDescription(),
+                    f.isMandatory() ? "Si" : "No", f.getType().toString(), f.getDataType().toString()
             ));
         }
         table.addRows(rows);
         System.out.println(table);
-    }
-
-    private int scegliIndiceCategoria(String titolo) {
-        List<Categoria> categorie = manager.getCategorie();
-        if (categorie.isEmpty()) {
-            System.out.println("Nessuna categoria presente.\n");
-            return -1;
-        }
-        List<String> entries = new ArrayList<>();
-        for (Categoria categoria : categorie) {
-            entries.add(categoria.getNome());
-        }
-        Menu menu = new Menu(titolo, entries, true, Alignment.CENTER, true);
-        int scelta = menu.choose();
-        if (scelta == 0) {
-            return -1;
-        }
-        return scelta - 1;
-    }
-
-    private int scegliIndiceCampo(List<Campo> campi, String titolo) {
-        if (campi == null || campi.isEmpty()) {
-            System.out.println("Nessun campo disponibile.\n");
-            return -1;
-        }
-        List<String> entries = new ArrayList<>();
-        for (Campo campo : campi) {
-            entries.add(campo.getNome());
-        }
-        Menu menu = new Menu(titolo, entries, true, Alignment.CENTER, true);
-        int scelta = menu.choose();
-        if (scelta == 0) {
-            return -1;
-        }
-        return scelta - 1;
-    }
-
-    private TipoDato scegliTipoDato(String titolo) {
-        List<String> entries = Arrays.stream(TipoDato.values())
-                .map(Enum::name)
-                .collect(Collectors.toList());
-        Menu menu = new Menu(titolo, entries, true, Alignment.CENTER, true);
-        int scelta = menu.choose();
-        if (scelta == 0) {
-            return null;
-        }
-        return TipoDato.values()[scelta - 1];
     }
 }

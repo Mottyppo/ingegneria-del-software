@@ -8,5 +8,6 @@ public class Main {
         SystemManager manager = new SystemManager();
         UserInteraction ui = new UserInteraction(manager);
         ui.start();
+        ui.end();
     }
 }

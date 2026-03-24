@@ -2,8 +2,7 @@ package it.unibs.ingesw.lib;
 
 /**
  * <code>Enum</code> that collects the alignment a string can have.
- * 
- * @author Alessandro Muscio (Kibo)
+ *
  */
 public enum Alignment {
   /** Represents the <i>left</i> alignment. */
@@ -13,9 +12,9 @@ public enum Alignment {
   /** Represents the <i>right</i> alignment. */
   RIGHT(1);
 
-  private int index;
+  private final int index;
 
-  private Alignment(int index) {
+  Alignment(int index) {
     this.index = index;
   }
 

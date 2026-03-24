@@ -3,8 +3,8 @@ package it.unibs.ingesw.io;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import it.unibs.ingesw.model.Categoria;
-import it.unibs.ingesw.model.Configuratore;
+import it.unibs.ingesw.model.Category;
+import it.unibs.ingesw.model.Configurator;
 import it.unibs.ingesw.model.SystemConfig;
 
 import java.io.IOException;
@@ -19,8 +19,8 @@ import java.util.List;
 public class IOManager {
     private static final String DATA_DIR = "data";
     private static final String CONFIG_FILE = "config.json";
-    private static final String CATEGORIE_FILE = "categorie.json";
-    private static final String UTENTI_FILE = "utenti.json";
+    private static final String CATEGORIES_FILE = "categories.json";
+    private static final String USERS_FILE = "users.json";
 
     private final Gson gson;
 
@@ -29,40 +29,40 @@ public class IOManager {
         ensureDataDir();
     }
 
-    public SystemConfig leggiConfig() {
+    public SystemConfig readConfig() {
         Path path = resolve(CONFIG_FILE);
         SystemConfig config = readJson(path, SystemConfig.class, new SystemConfig());
         if (config == null) {
             config = new SystemConfig();
-            scriviConfig(config);
+            writeConfig(config);
         }
         return config;
     }
 
-    public void scriviConfig(SystemConfig config) {
+    public void writeConfig(SystemConfig config) {
         writeJson(resolve(CONFIG_FILE), config);
     }
 
-    public List<Categoria> leggiCategorie() {
-        Type listType = new TypeToken<List<Categoria>>() {
+    public List<Category> readCategories() {
+        Type listType = new TypeToken<List<Category>>() {
         }.getType();
-        List<Categoria> categorie = readJson(resolve(CATEGORIE_FILE), listType, new ArrayList<>());
-        return categorie == null ? new ArrayList<>() : categorie;
+        List<Category> categories = readJson(resolve(CATEGORIES_FILE), listType, new ArrayList<>());
+        return categories == null ? new ArrayList<>() : categories;
     }
 
-    public void scriviCategorie(List<Categoria> categorie) {
-        writeJson(resolve(CATEGORIE_FILE), categorie);
+    public void writeCategories(List<Category> categories) {
+        writeJson(resolve(CATEGORIES_FILE), categories);
     }
 
-    public List<Configuratore> leggiConfiguratori() {
-        Type listType = new TypeToken<List<Configuratore>>() {
+    public List<Configurator> readConfigurators() {
+        Type listType = new TypeToken<List<Configurator>>() {
         }.getType();
-        List<Configuratore> configuratori = readJson(resolve(UTENTI_FILE), listType, new ArrayList<>());
-        return configuratori == null ? new ArrayList<>() : configuratori;
+        List<Configurator> configurators = readJson(resolve(USERS_FILE), listType, new ArrayList<>());
+        return configurators == null ? new ArrayList<>() : configurators;
     }
 
-    public void scriviConfiguratori(List<Configuratore> configuratori) {
-        writeJson(resolve(UTENTI_FILE), configuratori);
+    public void writeConfigurators(List<Configurator> configurators) {
+        writeJson(resolve(USERS_FILE), configurators);
     }
 
     private void ensureDataDir() {

@@ -7,8 +7,8 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class CommandLineTable {
-  private static final String RED_ERROR = PrettyStrings.prettify("Error!", AnsiColors.RED, AnsiWeights.BOLD, null);
-  private static final String ADD_ROWS_EXCEPTION = "All the rows must be lists of the same length as of the headers.";
+  private static final String RED_ERROR = FormatStrings.addFormat("Errore!", AnsiColors.RED, AnsiWeights.BOLD, null);
+  private static final String ADD_ROWS_EXCEPTION = "Tutte le le righe devono essere liste della stessa lunghezza dell'intestazione.";
 
   private static final char HORIZONTAL_SEPARATOR = '-';
   private static final char VERTICAL_SEPARATOR = '|';
@@ -78,24 +78,23 @@ public class CommandLineTable {
   public void fillHoles(List<List<String>> fillings) {
     int fillI = 0;
 
-    for (int i = 0; i < this.rows.size(); i++) {
-      List<String> row = this.rows.get(i);
-      int fillJ = 0;
-      boolean filled = false;
+      for (List<String> row : this.rows) {
+          int fillJ = 0;
+          boolean filled = false;
 
-      for (int j = 0; j < row.size(); j++) {
-        String cell = row.get(j);
+          for (int j = 0; j < row.size(); j++) {
+              String cell = row.get(j);
 
-        if (fillI >= fillings.size() || fillJ >= fillings.get(fillI).size() || !cell.isEmpty())
-          continue;
+              if (fillI >= fillings.size() || fillJ >= fillings.get(fillI).size() || !cell.isEmpty())
+                  continue;
 
-        this.rows.get(i).set(j, fillings.get(fillI).get(fillJ));
-        filled = true;
-        fillJ++;
+              row.set(j, fillings.get(fillI).get(fillJ));
+              filled = true;
+              fillJ++;
+          }
+
+          fillI += filled ? 1 : 0;
       }
-
-      fillI += filled ? 1 : 0;
-    }
   }
 
   @Override
@@ -103,7 +102,7 @@ public class CommandLineTable {
     StringJoiner tableStrJoiner = new StringJoiner("\n");
 
     List<List<String>> table = new ArrayList<>(this.rows);
-    table.add(0, this.headers);
+    table.addFirst(this.headers);
 
     List<Integer> widths = this.getMaxWidthsPerColumn(table);
 
@@ -121,10 +120,10 @@ public class CommandLineTable {
 
         String formattedCell = "";
         if (this.cellsAlignment.equals(Alignment.CENTER)) {
-          formattedCell = PrettyStrings.center(cell, widths.get(i));
+          formattedCell = FormatStrings.center(cell, widths.get(i));
         } else {
           boolean left = this.cellsAlignment.getIndex() < 0;
-          formattedCell = PrettyStrings.column(cell, widths.get(i), left);
+          formattedCell = FormatStrings.column(cell, widths.get(i), left);
         }
 
         rowStrJoiner.add(formattedCell);
@@ -151,7 +150,7 @@ public class CommandLineTable {
       if (i == 0 && this.showVLines)
         framePiece.append(CommandLineTable.JOIN_SEPARATOR[1]);
 
-      framePiece.append(PrettyStrings.repeatChar(CommandLineTable.HORIZONTAL_SEPARATOR, width));
+      framePiece.append(FormatStrings.repeatChar(CommandLineTable.HORIZONTAL_SEPARATOR, width));
 
       framePiece.append(CommandLineTable.JOIN_SEPARATOR[this.showVLines ? 1 : 0]);
 

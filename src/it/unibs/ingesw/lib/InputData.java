@@ -10,40 +10,39 @@ import java.util.stream.IntStream;
  * The class <strong>InputData</strong> can read a specific data type inserted
  * in input by the
  * user.It also allows the possibility to make controls on the data inserted.
- *
- * @author Alessandro Muscio
- * @version 1.0
  */
 public final class InputData {
   private static final Scanner reader = createScanner();
   // @formatter:off
   private static final Map<String, String> ERRORS = Map.ofEntries(
-      Map.entry("red", PrettyStrings.prettify("Error!\n", AnsiColors.RED, AnsiWeights.BOLD, null)),
-      Map.entry("constructor", "This class is not instantiable!"),
+      Map.entry("red", FormatStrings.addFormat("Errore!\n", AnsiColors.RED, AnsiWeights.BOLD, null)),
+      Map.entry("constructor", "Questa classe non e' istanziabile!"),
       Map.entry(
           "alphanumeric_characters",
-          "Only " + PrettyStrings.prettify("characters", null, AnsiWeights.BOLD, null) + " characters are allowed.\n"
+          "Sono consentiti solo " + FormatStrings.addFormat("caratteri", null, AnsiWeights.BOLD, null) + " alfanumerici.\n"
       ),
       Map.entry(
           "empty_string",
-          "No " + PrettyStrings.prettify("whitespaces", null, AnsiWeights.BOLD, null) + " or only "
-              + PrettyStrings.prettify("alphanumeric", null, AnsiWeights.BOLD, null) + " were inserted.\n"
+          "Sono stati inseriti solo " + FormatStrings.addFormat("spazi vuoti", null, AnsiWeights.BOLD, null) + " o nessun carattere "
+              + FormatStrings.addFormat("alfanumerico", null, AnsiWeights.BOLD, null) + ".\n"
       ),
-      Map.entry("allowed_characters", "The only allowed characters are: %s\n"),
+      Map.entry("allowed_characters", "Gli unici caratteri consentiti sono: %s\n"),
       Map.entry(
           "integer_format",
-          "The inserted data is in an " + PrettyStrings.prettify("incorrect", null, AnsiWeights.BOLD, null)
-              + " format. An " + PrettyStrings.prettify("integer", null, null, AnsiDecorations.UNDERLINE)
-              + " is required.\n"
+          "Il dato inserito e' in un formato " + FormatStrings.addFormat("errato", null, AnsiWeights.BOLD, null)
+              + ". E' richiesto un numero " + FormatStrings.addFormat("intero", null, null, AnsiDecorations.UNDERLINE)
+              + ".\n"
       ),
       Map.entry(
           "double_format",
-          "The inserted data is in an " + PrettyStrings.prettify("incorrect", null, AnsiWeights.BOLD, null)
-              + " format. A " + PrettyStrings.prettify("double", null, null, AnsiDecorations.UNDERLINE)
-              + " is required.\n"
+          "Il dato inserito e' in un formato " + FormatStrings.addFormat("errato", null, AnsiWeights.BOLD, null)
+              + ". E' richiesto un numero " + FormatStrings.addFormat("double", null, null, AnsiDecorations.UNDERLINE)
+              + ".\n"
       ),
-      Map.entry("minimum", "A value greater than or equal to %.2f is required.\n"),
-      Map.entry("maximum", "A value less than or equal to %.2f is required.\n")
+      Map.entry("minimum_int", "E' richiesto un valore maggiore o uguale a %d.\n"),
+      Map.entry("maximum_int", "E' richiesto un valore minore o uguale a %d.\n"),
+      Map.entry("minimum_double", "E' richiesto un valore maggiore o uguale a %.2f.\n"),
+      Map.entry("maximum_double", "E' richiesto un valore minore o uguale a %.2f.\n")
   );
   // @formatter:on
 
@@ -104,15 +103,15 @@ public final class InputData {
    * @return A <code>String</code> representing the user input.
    */
   public static String readString(String message, boolean alphanumeric) {
-    boolean isAlphanumeric = true;
-    String read = "";
+    boolean isAlphanumeric;
+    String read;
 
     do {
       System.out.print(message);
 
       read = reader.next().trim();
 
-      isAlphanumeric = alphanumeric ? InputData.hasAlphanumericCharacters(read) : isAlphanumeric;
+      isAlphanumeric = !alphanumeric || InputData.hasAlphanumericCharacters(read);
       if (!isAlphanumeric)
         System.out.println(InputData.ERRORS.get("red") + InputData.ERRORS.get("alphanumeric_characters"));
     } while (!isAlphanumeric);
@@ -133,8 +132,8 @@ public final class InputData {
    * @return A <code>String</code> representing the user input.
    */
   public static String readNonEmptyString(String message, boolean alphanumeric) {
-    boolean isEmpty = true;
-    String read = "";
+    boolean isEmpty;
+    String read;
 
     do {
       read = InputData.readString(message, alphanumeric);
@@ -160,9 +159,9 @@ public final class InputData {
    * @return A <code>char</code> representing the character tha was read.
    */
   public static char readChar(String message, String allowed) {
-    boolean isAllowed = true;
-    String read = "";
-    char readChar = '\0';
+    boolean isAllowed;
+    String read;
+    char readChar;
 
     do {
       read = InputData.readNonEmptyString(message, false);
@@ -229,7 +228,7 @@ public final class InputData {
    * @return An <code>int</code> representing the integer that was read.
    */
   public static int readInteger(String message) {
-    boolean isInteger = true;
+    boolean isInteger;
     int read = 0;
 
     do {
@@ -264,8 +263,8 @@ public final class InputData {
    * @return An <code>int</code> representing the integer that was read.
    */
   public static int readIntegerWithMinimum(String message, int min) {
-    boolean isBelowMin = true;
-    int read = Integer.MIN_VALUE;
+    boolean isBelowMin;
+    int read;
 
     do {
       read = InputData.readInteger(message);
@@ -275,7 +274,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("minimum").formatted(min)
+          InputData.ERRORS.get("minimum_int").formatted(min)
         );
         // @formatter:on
     } while (isBelowMin);
@@ -296,8 +295,8 @@ public final class InputData {
    * @return An <code>int</code> representing the integer that was read.
    */
   public static int readIntegerWithMaximum(String message, int max) {
-    boolean isAboveMax = true;
-    int read = Integer.MIN_VALUE;
+    boolean isAboveMax;
+    int read;
 
     do {
       read = InputData.readInteger(message);
@@ -307,7 +306,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("maximum").formatted(max)
+          InputData.ERRORS.get("maximum_int").formatted(max)
         );
         // @formatter:on
     } while (isAboveMax);
@@ -328,9 +327,9 @@ public final class InputData {
    * @return An <code>int</code> representing the integer that was read.
    */
   public static int readIntegerBetween(String message, int min, int max) {
-    boolean isBelowMin = true;
-    boolean isAboveMax = true;
-    int read = Integer.MIN_VALUE;
+    boolean isBelowMin;
+    boolean isAboveMax;
+    int read;
 
     do {
       read = InputData.readInteger(message);
@@ -340,7 +339,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("minimum").formatted(min)
+          InputData.ERRORS.get("minimum_int").formatted(min)
         );
         // @formatter:on
 
@@ -349,7 +348,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("maximum").formatted(max)
+          InputData.ERRORS.get("maximum_int").formatted(max)
         );
         // @formatter:on
     } while (isBelowMin || isAboveMax);
@@ -366,7 +365,7 @@ public final class InputData {
    * @return A <code>double</code> representing the double that was read.
    */
   public static double readDouble(String message) {
-    boolean isDouble = true;
+    boolean isDouble;
     double read = Double.NaN;
 
     do {
@@ -400,8 +399,8 @@ public final class InputData {
    * @return A <code>double</code> representing the double that was read.
    */
   public static double readDoubleWithMinimum(String message, double min) {
-    boolean isBelowMin = true;
-    double read = Double.NaN;
+    boolean isBelowMin;
+    double read;
 
     do {
       read = InputData.readDouble(message);
@@ -411,7 +410,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("minimum").formatted(min)
+          InputData.ERRORS.get("minimum_double").formatted(min)
         );
         // @formatter:on
     } while (isBelowMin);
@@ -431,8 +430,8 @@ public final class InputData {
    * @return An <code>double</code> representing the double that was read.
    */
   public static double readDoubleWithMaximum(String message, double max) {
-    boolean isAboveMax = true;
-    double read = Double.NaN;
+    boolean isAboveMax;
+    double read;
 
     do {
       read = InputData.readDouble(message);
@@ -442,7 +441,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("maximum").formatted(max)
+          InputData.ERRORS.get("maximum_double").formatted(max)
         );
         // @formatter:on
     } while (isAboveMax);
@@ -453,7 +452,7 @@ public final class InputData {
   /**
    * Prints <code>message</code> in the terminal and reads the text inserted by
    * the user. It will
-   * print an error message if the text inserted isn't an double or if the double
+   * print an error message if the text inserted isn't a double or if the double
    * inserted isn't
    * between or equal than <code>min</code> and <code>max</code>.
    *
@@ -463,9 +462,9 @@ public final class InputData {
    * @return An <code>double</code> representing the double that was read.
    */
   public static double readDoubleBetween(String message, double min, double max) {
-    boolean isBelowMin = true;
-    boolean isAboveMax = true;
-    double read = Double.NaN;
+    boolean isBelowMin;
+    boolean isAboveMax;
+    double read;
 
     do {
       read = InputData.readDouble(message);
@@ -475,7 +474,7 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("minimum").formatted(min)
+          InputData.ERRORS.get("minimum_double").formatted(min)
         );
         // @formatter:on
 
@@ -484,10 +483,10 @@ public final class InputData {
         // @formatter:off
         System.out.println(
           InputData.ERRORS.get("red") + 
-          InputData.ERRORS.get("maximum").formatted(max)
+          InputData.ERRORS.get("maximum_double").formatted(max)
         );
         // @formatter:on
-    } while (isBelowMin);
+    } while (isBelowMin || isAboveMax);
 
     return read;
   }

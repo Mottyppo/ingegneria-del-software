@@ -1,273 +1,256 @@
 package it.unibs.ingesw.controller;
 
 import it.unibs.ingesw.io.IOManager;
-import it.unibs.ingesw.model.Campo;
-import it.unibs.ingesw.model.Categoria;
-import it.unibs.ingesw.model.Configuratore;
+import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.Category;
+import it.unibs.ingesw.model.Configurator;
 import it.unibs.ingesw.model.SystemConfig;
-import it.unibs.ingesw.model.TipoCampo;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-//TODO: everything here
+//TODO: Documentation
 
 public class SystemManager {
     private final IOManager ioManager;
-    private final List<Configuratore> configuratori;
-    private final List<Categoria> categorie;
+    private final List<Configurator> configurators;
+    private final List<Category> categories;
     private final SystemConfig config;
 
     public SystemManager() {
         this.ioManager = new IOManager();
-        this.config = ioManager.leggiConfig();
-        this.categorie = ioManager.leggiCategorie();
-        this.configuratori = ioManager.leggiConfiguratori();
+        this.config = ioManager.readConfig();
+        this.categories = ioManager.readCategories();
+        this.configurators = ioManager.readConfigurators();
 
-        if (this.configuratori.isEmpty()) {
-            inizializzaConfiguratoriPredefiniti();
+        if (this.configurators.isEmpty()) {
+            initializeDefaultConfigurators();
         }
     }
 
-    private void inizializzaConfiguratoriPredefiniti() {
-        Configuratore c1 = new Configuratore("config1", "config1");
-        Configuratore c2 = new Configuratore("config2", "config2");
-        this.configuratori.add(c1);
-        this.configuratori.add(c2);
-        ioManager.scriviConfiguratori(this.configuratori);
+    private void initializeDefaultConfigurators() {
+        Configurator c1 = new Configurator("crocerossaitaliana", "ginevra1864");
+        Configurator c2 = new Configurator("alpinibrescia", "nikolajewka1943");
+        this.configurators.add(c1);
+        this.configurators.add(c2);
+        ioManager.writeConfigurators(this.configurators);
     }
 
-    public Configuratore autenticaConfiguratore(String username, String password) {
-        for (Configuratore configuratore : configuratori) {
-            if (configuratore.getUsername().equalsIgnoreCase(username)
-                    && configuratore.getPassword().equals(password)) {
-                return configuratore;
+    public Configurator authenticateConfigurator(String username, String password) {
+        for (Configurator configurator : configurators) {
+            if (configurator.getUsername().equalsIgnoreCase(username)
+                    && configurator.getPassword().equals(password)) {
+                return configurator;
             }
         }
         return null;
     }
 
-    public boolean isUsernameDisponibile(String username, Configuratore exclude) {
-        for (Configuratore configuratore : configuratori) {
-            if (exclude != null && configuratore == exclude) {
+    public boolean isUsernameAvailable(String username, Configurator exclude) {
+        for (Configurator configurator : configurators) {
+            if (exclude != null && configurator == exclude) {
                 continue;
             }
-            if (configuratore.getUsername().equalsIgnoreCase(username)) {
+            if (configurator.getUsername().equalsIgnoreCase(username)) {
                 return false;
             }
         }
         return true;
     }
 
-    public boolean aggiornaCredenziali(Configuratore configuratore, String newUsername, String newPassword) {
+    public boolean updateCredentials(Configurator configurator, String newUsername, String newPassword) {
         if (newUsername == null || newUsername.isBlank()) {
             return false;
         }
         String normalized = newUsername.trim();
-        if (!isUsernameDisponibile(normalized, configuratore)) {
+        if (!isUsernameAvailable(normalized, configurator)) {
             return false;
         }
-        configuratore.setCredenziali(normalized, newPassword);
-        ioManager.scriviConfiguratori(this.configuratori);
+        configurator.setCredentials(normalized, newPassword);
+        ioManager.writeConfigurators(this.configurators);
         return true;
     }
 
-    public boolean isCampiBaseImpostati() {
-        return config.isCampiBaseImpostati();
+    public boolean areBaseFieldsSet() {
+        return config.areBaseFieldsSet();
     }
 
-    public boolean impostaCampiBase(List<Campo> campiBase) {
-        boolean success = config.impostaCampiBase(campiBase);
+    public boolean setBaseFields(List<Field> baseFields) {
+        boolean success = config.setBaseFields(baseFields);
         if (success) {
-            ioManager.scriviConfig(config);
+            ioManager.writeConfig(config);
         }
         return success;
     }
 
-    public List<Campo> getCampiBase() {
-        return config.getCampiBase();
+    public List<Field> getBaseFields() {
+        return config.getBaseFields();
     }
 
-    public List<Campo> getCampiComuni() {
-        return config.getCampiComuni();
+    public List<Field> getCommonFields() {
+        return config.getCommonFields();
     }
 
-    public boolean aggiungiCampoComune(Campo campo) {
-        if (!isNomeCampoDisponibile(campo.getNome(), null)) {
+    public boolean addCommonField(Field field) {
+        if (!isFieldNameAvailable(field.getName(), null)) {
             return false;
         }
-        config.aggiungiCampoComune(campo);
-        ioManager.scriviConfig(config);
+        config.addCommonField(field);
+        ioManager.writeConfig(config);
         return true;
     }
 
-    public boolean rimuoviCampoComune(int index) {
-        if (index < 0 || index >= config.getCampiComuni().size()) {
-            return false;
-        }
-        config.rimuoviCampoComune(index);
-        ioManager.scriviConfig(config);
+    public boolean removeCommonField(int index) {
+        if (isInvalidIndex(index, config.getCommonFields())) return false;
+        config.removeCommonField(index);
+        ioManager.writeConfig(config);
         return true;
     }
 
-    public boolean modificaObbligatorioCampoComune(int index) {
-        if (index < 0 || index >= config.getCampiComuni().size()) {
-            return false;
-        }
-        config.modificaObbligatorioComune(index);
-        ioManager.scriviConfig(config);
+    public boolean toggleMandatorinessCommonField(int index) {
+        if (isInvalidIndex(index, config.getCommonFields())) return false;
+        config.toggleMandatorinessCommonField(index);
+        ioManager.writeConfig(config);
         return true;
     }
 
-    public List<Categoria> getCategorie() {
-        return Collections.unmodifiableList(categorie);
+    public List<Category> getCategories() {
+        return Collections.unmodifiableList(categories);
     }
 
-    public boolean aggiungiCategoria(String nome, List<Campo> campiSpecifici) {
-        if (!isNomeCategoriaDisponibile(nome)) {
+    public boolean addCategory(String name, List<Field> specificFields) {
+        if (!isCategoryNameAvailable(name)) {
             return false;
         }
-        String normalized = nome.trim();
-        List<Campo> specificiValidi = campiSpecifici == null ? new ArrayList<>() : new ArrayList<>(campiSpecifici);
-        if (!verificaNomiCampiSpecifici(specificiValidi)) {
+        String normalized = name.trim();
+        List<Field> validSpecifics = specificFields == null ? new ArrayList<>() : new ArrayList<>(specificFields);
+        if (!checkSpecificFieldsNames(validSpecifics)) {
             return false;
         }
-        Categoria categoria = new Categoria(normalized, specificiValidi);
-        categorie.add(categoria);
-        ioManager.scriviCategorie(categorie);
+        Category category = new Category(normalized, validSpecifics);
+        categories.add(category);
+        ioManager.writeCategories(categories);
         return true;
     }
 
-    public boolean rimuoviCategoria(int index) {
-        if (index < 0 || index >= categorie.size()) {
-            return false;
-        }
-        categorie.remove(index);
-        ioManager.scriviCategorie(categorie);
+    public boolean removeCategory(int index) {
+        if (isInvalidIndex(index, categories)) return false;
+        categories.remove(index);
+        ioManager.writeCategories(categories);
         return true;
     }
 
-    public boolean aggiungiCampoSpecifico(int categoriaIndex, Campo campo) {
-        if (categoriaIndex < 0 || categoriaIndex >= categorie.size()) {
+    public boolean addSpecificField(int categoryIndex, Field field) {
+        if (isInvalidIndex(categoryIndex, categories)) return false;
+        Category category = categories.get(categoryIndex);
+        if (!isFieldNameAvailable(field.getName(), category)) {
             return false;
         }
-        Categoria categoria = categorie.get(categoriaIndex);
-        if (!isNomeCampoDisponibile(campo.getNome(), categoria)) {
-            return false;
-        }
-        categoria.aggiungiCampoSpecifico(campo);
-        ioManager.scriviCategorie(categorie);
+        category.addSpecificField(field);
+        ioManager.writeCategories(categories);
         return true;
     }
 
-    public boolean rimuoviCampoSpecifico(int categoriaIndex, int campoIndex) {
-        if (categoriaIndex < 0 || categoriaIndex >= categorie.size()) {
-            return false;
-        }
-        Categoria categoria = categorie.get(categoriaIndex);
-        if (campoIndex < 0 || campoIndex >= categoria.getCampiSpecifici().size()) {
-            return false;
-        }
-        categoria.rimuoviCampoSpecifico(campoIndex);
-        ioManager.scriviCategorie(categorie);
+    public boolean removeSpecificField(int categoryIndex, int fieldIndex) {
+        if (isInvalidIndex(categoryIndex, categories)) return false;
+        Category category = categories.get(categoryIndex);
+        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) return false;
+        category.removeSpecificField(fieldIndex);
+        ioManager.writeCategories(categories);
         return true;
     }
 
-    public boolean modificaObbligatorioCampoSpecifico(int categoriaIndex, int campoIndex) {
-        if (categoriaIndex < 0 || categoriaIndex >= categorie.size()) {
-            return false;
-        }
-        Categoria categoria = categorie.get(categoriaIndex);
-        if (campoIndex < 0 || campoIndex >= categoria.getCampiSpecifici().size()) {
-            return false;
-        }
-        categoria.modificaObbligatorio(campoIndex);
-        ioManager.scriviCategorie(categorie);
+    public boolean toggleMandatorinessSpecificField(int categoryIndex, int fieldIndex) {
+        if (isInvalidIndex(categoryIndex, categories)) return false;
+        Category category = categories.get(categoryIndex);
+        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) return false;
+        category.toggleMandatoriness(fieldIndex);
+        ioManager.writeCategories(categories);
         return true;
     }
 
-    public boolean isNomeCategoriaDisponibile(String nome) {
-        if (nome == null || nome.trim().isBlank()) {
+    public boolean isCategoryNameAvailable(String name) {
+        if (name == null || name.trim().isBlank()) {
             return false;
         }
-        String normalized = nome.trim();
-        for (Categoria categoria : categorie) {
-            if (categoria.getNome().equalsIgnoreCase(normalized)) {
+        String normalized = name.trim();
+        for (Category category : categories) {
+            if (category.getName().equalsIgnoreCase(normalized)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean isNomeCampoDisponibile(String nomeCampo, Categoria categoria) {
-        if (nomeCampo == null) {
+    private boolean isFieldNameAvailable(String fieldName, Category category) {
+        if (fieldName == null) {
             return false;
         }
-        String normalized = nomeCampo.trim();
+        String normalized = fieldName.trim();
         if (normalized.isBlank()) {
             return false;
         }
 
-        if (esisteNomeCampo(config.getCampiBase(), normalized)) {
+        if (fieldNameExists(config.getBaseFields(), normalized)) {
             return false;
         }
-        if (esisteNomeCampo(config.getCampiComuni(), normalized)) {
+        if (fieldNameExists(config.getCommonFields(), normalized)) {
             return false;
         }
-        if (categoria != null && esisteNomeCampo(categoria.getCampiSpecifici(), normalized)) {
+        if (category != null && fieldNameExists(category.getSpecificFields(), normalized)) {
             return false;
         }
         return true;
     }
 
-    private boolean esisteNomeCampo(List<Campo> campi, String nomeCampo) {
-        for (Campo campo : campi) {
-            if (campo.getNome() != null && campo.getNome().equalsIgnoreCase(nomeCampo)) {
+    private boolean fieldNameExists(List<Field> fields, String fieldName) {
+        for (Field field : fields) {
+            if (field.getName() != null && field.getName().equalsIgnoreCase(fieldName)) {
                 return true;
             }
         }
         return false;
     }
 
-    private boolean verificaNomiCampiSpecifici(List<Campo> campiSpecifici) {
-        List<String> nomiVisti = new ArrayList<>();
-        for (Campo campo : campiSpecifici) {
-            if (campo == null || campo.getNome() == null) {
+    private boolean checkSpecificFieldsNames(List<Field> specificFields) {
+        List<String> checkedNames = new ArrayList<>();
+        for (Field field : specificFields) {
+            if (field == null || field.getName() == null) {
                 return false;
             }
-            String nome = campo.getNome().trim();
-            if (nome.isBlank()) {
+            String name = field.getName().trim();
+            if (name.isBlank()) {
                 return false;
             }
-            if (!isNomeCampoDisponibile(nome, null)) {
+            if (!isFieldNameAvailable(name, null)) {
                 return false;
             }
-            for (String nomeVisto : nomiVisti) {
-                if (nomeVisto.equalsIgnoreCase(nome)) {
+            for (String checked : checkedNames) {
+                if (checked.equalsIgnoreCase(name)) {
                     return false;
                 }
             }
-            nomiVisti.add(nome);
+            checkedNames.add(name);
         }
         return true;
     }
 
-    public boolean isNomeCampoCategoriaDisponibile(String nomeCampo, Categoria categoria) {
-        return isNomeCampoDisponibile(nomeCampo, categoria);
+    public boolean isFieldNameAvailableForCategory(String fieldName, Category category) {
+        return isFieldNameAvailable(fieldName, category);
     }
 
-    public List<Campo> getCampiCategoriaCondivisi(Categoria categoria) {
-        List<Campo> campi = new ArrayList<>();
-        campi.addAll(config.getCampiBase());
-        campi.addAll(config.getCampiComuni());
-        if (categoria != null) {
-            campi.addAll(categoria.getCampiSpecifici());
+    public List<Field> getSharedFieldsForCategory(Category category) {
+        List<Field> fields = new ArrayList<>();
+        fields.addAll(config.getBaseFields());
+        fields.addAll(config.getCommonFields());
+        if (category != null) {
+            fields.addAll(category.getSpecificFields());
         }
-        return campi;
+        return fields;
     }
 
-    public boolean isTipoCampoSpecifico(Campo campo) {
-        return campo != null && campo.getTipo() == TipoCampo.SPECIFICO;
+    private <T> boolean isInvalidIndex(int index, List<T> list) {
+        return index < 0 || index >= list.size();
     }
 }

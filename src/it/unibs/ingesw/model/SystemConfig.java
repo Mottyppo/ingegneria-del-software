@@ -4,63 +4,63 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-//TODO: documentazione + toString
+//TODO: Documentazione
 
 public class SystemConfig {
-    private List<Campo> campiBase;
-    private List<Campo> campiComuni;
+    private List<Field> baseFields;
+    private List<Field> commonFields;
 
     public SystemConfig() {
-        this.campiBase = new ArrayList<>();
-        this.campiComuni = new ArrayList<>();
+        this.baseFields = new ArrayList<>();
+        this.commonFields = new ArrayList<>();
     }
 
-    public boolean isCampiBaseImpostati() {
-        return campiBase != null && !campiBase.isEmpty();
+    public boolean areBaseFieldsSet() {
+        return baseFields != null && !baseFields.isEmpty();
     }
 
-    public boolean impostaCampiBase(List<Campo> campiBase) {
-        if (isCampiBaseImpostati()) {
+    public boolean setBaseFields(List<Field> baseFields) {
+        if (areBaseFieldsSet()) {
             return false;
         }
-        this.campiBase = new ArrayList<>(campiBase);
+        this.baseFields = new ArrayList<>(baseFields);
         return true;
     }
 
-    public List<Campo> getCampiBase() {
-        return campiBase == null ? List.of() : Collections.unmodifiableList(campiBase);
+    public List<Field> getBaseFields() {
+        return baseFields == null ? List.of() : Collections.unmodifiableList(baseFields);
     }
 
-    public List<Campo> getCampiComuni() {
-        return campiComuni == null ? List.of() : Collections.unmodifiableList(campiComuni);
+    public List<Field> getCommonFields() {
+        return commonFields == null ? List.of() : Collections.unmodifiableList(commonFields);
     }
 
-    public void aggiungiCampoComune(Campo campo) {
-        if (campiComuni == null) {
-            campiComuni = new ArrayList<>();
+    public void addCommonField(Field field) {
+        if (commonFields == null) {
+            commonFields = new ArrayList<>();
         }
-        campiComuni.add(campo);
+        commonFields.add(field);
     }
 
-    public void rimuoviCampoComune(int index) {
-        if (campiComuni == null) {
+    public void removeCommonField(int index) {
+        if (commonFields == null) {
             return;
         }
-        campiComuni.remove(index);
+        commonFields.remove(index);
     }
 
-    public void modificaObbligatorioComune(int index) {
-        if (campiComuni == null) {
+    public void toggleMandatorinessCommonField(int index) {
+        if (commonFields == null) {
             return;
         }
-        campiComuni.get(index).toggleObbligatorio();
+        commonFields.get(index).toggleMandatoriness();
     }
 
     @Override
     public String toString() {
         return "SystemConfig{" +
-                "campiBase=" + campiBase +
-                ", campiComuni=" + campiComuni +
+                "campi base=" + baseFields +
+                ", campi comuni=" + commonFields +
                 '}';
     }
 }

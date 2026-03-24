@@ -7,36 +7,33 @@ import java.util.StringJoiner;
  * The <strong>Menu</strong> class creates a menu with multiple entry supposing that zero is always
  * the exit option. The class also contains some method that may result useful in visualizing the
  * menu.
- *
- * @author Alessandro Muscio (kibo)
- * @version 1.0
  */
 public class Menu {
   private static final char NEW_LINE = '\n';
-  private static final String EXIT_ENTRY = "0. Exit";
+  private static final String EXIT_ENTRY = "0. Esci";
   private static final String INSERT_REQUEST = "> ";
-  private static final String NEGATIVE_MILLIS_ERROR = "%sAttention!%s\nYou can't have negative time."
+  private static final String NEGATIVE_MILLIS_ERROR = "%sAttenzione!%s\nIl tempo di attesa non puo' essere negativo."
       .formatted(AnsiColors.RED, AnsiColors.RESET);
 
   /**
    * Represent the title of the menu.
    */
-  private String title;
+  private final String title;
 
   /**
    * Contains all the menu entries.
    */
-  private List<String> entries;
+  private final List<String> entries;
 
   /**
    * Represents the length of the frame.
    */
-  private boolean useExitEntry;
+  private final boolean useExitEntry;
 
   /**
    * Represents the title settings
    */
-  private FrameSettings titleSettings;
+  private final FrameSettings titleSettings;
 
   /**
    * Constructor that creates a <code>Menu</code> object specifying a title, the entries of the menu,
@@ -122,14 +119,14 @@ public class Menu {
   private void printMenu() {
     StringJoiner stringedMenu = new StringJoiner(String.valueOf(Menu.NEW_LINE));
 
-    stringedMenu.add(PrettyStrings.frame(this.title, this.titleSettings));
+    stringedMenu.add(FormatStrings.frame(this.title, this.titleSettings));
 
     for (int i = 0; i < this.entries.size(); i++)
       stringedMenu.add("%d. %s".formatted(i + 1, this.entries.get(i)));
 
     if (this.useExitEntry)
-      stringedMenu.add(PrettyStrings.isolatedLine(Menu.EXIT_ENTRY));
+      stringedMenu.add(FormatStrings.isolatedLine(Menu.EXIT_ENTRY));
 
-    System.out.println(stringedMenu.toString());
+    System.out.println(stringedMenu);
   }
 }

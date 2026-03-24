@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Sport",
+    "specificFields": [
+      {
+        "name": "Certificato medico",
+        "description": "indica se è richiesto o no il certificato medico",
+        "mandatory": true,
+        "type": "SPECIFIC",
+        "dataType": "BOOLEAN"
+      }
+    ]
+  }
+]

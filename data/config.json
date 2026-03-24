@@ -1,0 +1,69 @@
+{
+  "baseFields": [
+    {
+      "name": "Titolo",
+      "description": "nome di fantasia (esplicativo) attribuito all\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Numero di partecipanti",
+      "description": "numero di persone da coinvolgere nell\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "INTEGER"
+    },
+    {
+      "name": "Termine ultimo di iscrizione",
+      "description": "ultimo giorno utile per iscriversi all\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "DATE"
+    },
+    {
+      "name": "Luogo",
+      "description": "indirizzo del luogo che ospitera\u0027 l\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Data",
+      "description": "data di inizio dell\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "DATE"
+    },
+    {
+      "name": "Ora",
+      "description": "ora di ritrovo dei partecipanti",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "TIME"
+    },
+    {
+      "name": "Quota individuale",
+      "description": "spesa individuale stimata per l\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "DECIMAL"
+    },
+    {
+      "name": "Data conclusiva",
+      "description": "data di conclusione dell\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "DATE"
+    }
+  ],
+  "commonFields": [
+    {
+      "name": "Note",
+      "description": "informazioni aggiuntive",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    }
+  ]
+}

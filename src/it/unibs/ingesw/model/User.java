@@ -1,12 +1,12 @@
 package it.unibs.ingesw.model;
 
-//TODO: documentazione + toString
+//TODO: Documentazione
 
-public abstract class Utente {
+public abstract class User {
     protected String username;
     protected String password;
 
-    public Utente(String username, String password) {
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
     }

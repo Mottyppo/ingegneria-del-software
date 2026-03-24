@@ -1,10 +1,5 @@
 package it.unibs.ingesw.lib;
 
-/**
- * <code>Class</code> that let's you specify the settings for framing a <code>String</code>.
- * 
- * @author Alessandro Muscio (Kibo)
- */
 public class FrameSettings {
   private static final char DEFAULT_HORIZONTAL_FRAME = '-';
   private static final char DEFAULT_VERTICAL_FRAME = '|';

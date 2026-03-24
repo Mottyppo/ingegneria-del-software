@@ -1,56 +1,66 @@
 package it.unibs.ingesw.test;
 
-import it.unibs.ingesw.model.Campo;
+import it.unibs.ingesw.model.DataType;
+import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.SystemConfig;
-import it.unibs.ingesw.model.TipoCampo;
-import it.unibs.ingesw.model.TipoDato;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SystemConfigTest {
 
     @Test
-    void impostaCampiBaseSoloUnaVolta() {
+    void baseFieldsCrudCreateAndReadOnce() {
         SystemConfig config = new SystemConfig();
-        List<Campo> base = List.of(
-                new Campo("Titolo", "", true, TipoCampo.BASE, TipoDato.STRING)
+        List<Field> base = List.of(
+                new Field("Titolo", "", true, FieldType.BASE, DataType.STRING)
         );
 
-        assertTrue(config.impostaCampiBase(base));
-        assertFalse(config.impostaCampiBase(base));
-        assertEquals(1, config.getCampiBase().size());
+        // CREATE
+        assertTrue(config.setBaseFields(base));
+        // READ
+        assertEquals(1, config.getBaseFields().size());
+        assertEquals("Titolo", config.getBaseFields().getFirst().getName());
+        // cannot create again
+        assertFalse(config.setBaseFields(base));
     }
 
     @Test
-    void campiBaseNonModificabili() {
+    void baseFieldsImmutable() {
         SystemConfig config = new SystemConfig();
-        config.impostaCampiBase(List.of(
-                new Campo("Titolo", "", true, TipoCampo.BASE, TipoDato.STRING)
+        config.setBaseFields(List.of(
+                new Field("Titolo", "", true, FieldType.BASE, DataType.STRING)
         ));
 
-        assertThrows(UnsupportedOperationException.class, () -> config.getCampiBase().add(
-                new Campo("Altro", "", true, TipoCampo.BASE, TipoDato.STRING)
+        assertThrows(UnsupportedOperationException.class, () -> config.getBaseFields().add(
+                new Field("Altro", "", true, FieldType.BASE, DataType.STRING)
         ));
     }
 
     @Test
-    void gestioneCampiComuni() {
+    void commonFieldsCrudFlow() {
         SystemConfig config = new SystemConfig();
-        Campo comune = new Campo("Note", "", false, TipoCampo.COMUNE, TipoDato.STRING);
+        Field comune = new Field("Note", "", false, FieldType.COMMON, DataType.STRING);
 
-        config.aggiungiCampoComune(comune);
-        assertEquals(1, config.getCampiComuni().size());
+        // CREATE
+        config.addCommonField(comune);
 
-        config.modificaObbligatorioComune(0);
-        assertTrue(config.getCampiComuni().get(0).isObbligatorio());
+        // READ
+        assertEquals(1, config.getCommonFields().size());
+        assertFalse(config.getCommonFields().getFirst().isMandatory());
 
-        config.rimuoviCampoComune(0);
-        assertEquals(0, config.getCampiComuni().size());
+        // UPDATE
+        config.toggleMandatorinessCommonField(0);
+        assertTrue(config.getCommonFields().getFirst().isMandatory());
+
+        // DELETE
+        config.removeCommonField(0);
+        assertEquals(0, config.getCommonFields().size());
     }
 }
