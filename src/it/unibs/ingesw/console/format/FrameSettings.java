@@ -1,5 +1,8 @@
-package it.unibs.ingesw.lib;
+package it.unibs.ingesw.console.format;
 
+/**
+ * Configuration object used to render framed text with {@link FormatStrings}.
+ */
 public class FrameSettings {
   private static final char DEFAULT_HORIZONTAL_FRAME = '-';
   private static final char DEFAULT_VERTICAL_FRAME = '|';
@@ -11,27 +14,24 @@ public class FrameSettings {
   private char verticalFrame;
 
   /**
-   * Creates a new <i>settings</i> instance specifying the width of the frame, its alignment and if
-   * the vertical frame is enabled or not. The constructor will automatically set the default vertical
-   * and horizontal frame, change it with the appropriate setters.
+   * Creates a new settings instance with the default frame characters.
    *
    * @param width                The width of the frame.
    * @param alignment            The alignment of the frame.
-   * @param verticalFrameEnabled If teh vertical frame is enabled or not.
+   * @param verticalFrameEnabled Whether the vertical frame is enabled.
    */
   public FrameSettings(int width, Alignment alignment, boolean verticalFrameEnabled) {
     this(width, alignment, verticalFrameEnabled, DEFAULT_HORIZONTAL_FRAME, DEFAULT_VERTICAL_FRAME);
   }
 
   /**
-   * Creates a new <i>settings</i> instance specifying the width of the frame, its alignment, if the
-   * vertical frame is enabled or not, the horizontal and the vertical frame.
+   * Creates a new settings instance with custom frame characters.
    *
    * @param width                The width of the frame.
    * @param alignment            The alignment of the frame.
-   * @param verticalFrameEnabled If the vertical frame is enabled or not.
-   * @param hFrame               The horizontal frame
-   * @param vFrame               The vertical frame
+   * @param verticalFrameEnabled Whether the vertical frame is enabled.
+   * @param hFrame               The horizontal frame character.
+   * @param vFrame               The vertical frame character.
    */
   public FrameSettings(int width, Alignment alignment, boolean verticalFrameEnabled, char hFrame, char vFrame) {
     this.width = width;

@@ -1,13 +1,17 @@
-package it.unibs.ingesw.lib;
+package it.unibs.ingesw.console.format;
 
 /**
- * <code>Enum</code> that collects some ansi decorations in order to format
- * strings in the terminal. It can add decorations to the strings.
- *
+ * Enumeration of ANSI decorations used to enrich terminal output.
  */
 public enum AnsiDecorations {
   /** Formats the words with an <i>underline</i> decoration. */
-  UNDERLINE("\u001B[4m");
+  UNDERLINE(underlineCode());
+
+  private static final String UNDERLINE_CODE = "\u001B[4m";
+
+  private static String underlineCode() {
+    return UNDERLINE_CODE;
+  }
 
   private final String ansiCode;
 

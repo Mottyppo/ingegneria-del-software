@@ -1,8 +1,6 @@
-# README.MD
+# Elaborato per il corso di Ingegneria del Software
 
-Questo file mi serve per avere un elenco delle cosse da fare.
-Praticamente è una todolist disordinata.
-
-## TODO: 
-
-- documentazione
+## Componenti del gruppo:
++ Masciali Luca - 747335
++ Mottinelli Matteo - 745550
++ Nizzotti Mattia - 746348

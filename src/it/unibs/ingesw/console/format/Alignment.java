@@ -1,8 +1,7 @@
-package it.unibs.ingesw.lib;
+package it.unibs.ingesw.console.format;
 
 /**
- * <code>Enum</code> that collects the alignment a string can have.
- *
+ * Enumeration of the supported horizontal alignments for strings and tables.
  */
 public enum Alignment {
   /** Represents the <i>left</i> alignment. */

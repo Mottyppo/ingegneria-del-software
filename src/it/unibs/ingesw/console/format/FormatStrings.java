@@ -1,7 +1,14 @@
-package it.unibs.ingesw.lib;
+package it.unibs.ingesw.console.format;
 
 import java.util.StringJoiner;
 
+/**
+ * Utility class for composing and decorating strings for terminal output.
+ *
+ * <p>
+ * The class groups helpers for framing, alignment, repetition and ANSI styling.
+ * </p>
+ */
 public class FormatStrings {
   private static final String UNSUPPORTED_OP_ERR_MSG = String.format("%sQuesta classe non e' istanziabile!%s",
       AnsiColors.RED, AnsiColors.RESET);
@@ -12,6 +19,13 @@ public class FormatStrings {
     throw new UnsupportedOperationException(FormatStrings.UNSUPPORTED_OP_ERR_MSG);
   }
 
+  /**
+   * Builds a framed representation of the provided string.
+   *
+   * @param toFrame  The string to frame.
+   * @param settings The frame rendering settings.
+   * @return The framed string.
+   */
   public static String frame(String toFrame, FrameSettings settings) {
     String hFrame = FormatStrings.repeatChar(settings.getHorizontalFrame(), settings.getWidth());
     StringJoiner framed = new StringJoiner(String.valueOf(FormatStrings.NEW_LINE));
@@ -32,8 +46,8 @@ public class FormatStrings {
     else
       // @formatter:off
       titleLine.insert(offset, FormatStrings.column(
-        toFrame, 
-        settings.getWidth(), 
+        toFrame,
+        settings.getWidth(),
         settings.getAlignment().equals(Alignment.LEFT)
       ));
       // @formatter:on
@@ -46,13 +60,12 @@ public class FormatStrings {
   }
 
   /**
-   * Columnize the given <code>String</code>, to the left or to the right.
-   * 
-   * @param toColumnize The <code>String</code> to columnize.
-   * @param width       The width where to columnize the <code>String</code>.
-   * @param left        If columnize it to the left or to the right.
-   * 
-   * @return A <code>String</code> representing the given one columnized.
+   * Aligns the given string inside a fixed-width column.
+   *
+   * @param toColumnize The string to align.
+   * @param width       The target width of the column.
+   * @param left        Whether the text should be aligned to the left.
+   * @return The aligned string.
    */
   public static String column(String toColumnize, int width, boolean left) {
     String columned = toColumnize.length() > width ? toColumnize.substring(0, width) : toColumnize;
@@ -62,12 +75,11 @@ public class FormatStrings {
   }
 
   /**
-   * Centers the given <code>String</code> in the given space.
-   * 
-   * @param toCenter The <code>String</code> to center.
-   * @param width    The width where to center the <code>String</code>.
-   * 
-   * @return A <code>String</code> representing the given one centered.
+   * Centers the given string in a fixed-width space.
+   *
+   * @param toCenter The string to center.
+   * @param width    The target width.
+   * @return The centered string.
    */
   public static String center(String toCenter, int width) {
     int toCenterLength = toCenter.length();
@@ -91,45 +103,34 @@ public class FormatStrings {
   }
 
   /**
-   * Repeats a given <code>char</code> for a given number of times.
-   * 
-   * @param character The <code>char</code> to repeat.
-   * @param times     The number of times to repeat the <code>char</code>.
-   * 
-   * @return A <code>String</code> representing the given <code>char</code> repeated the given number
-   *         of times.
+   * Repeats a character the requested number of times.
+   *
+   * @param character The character to repeat.
+   * @param times     The repetition count.
+   * @return The repeated character sequence.
    */
   public static String repeatChar(char character, int times) {
     return String.valueOf(character).repeat(Math.max(0, times));
   }
 
   /**
-   * Isolates the given <code>String</code>.
-   * 
-   * @param toIsolate The <code>String</code> to isolate.
-   * 
-   * @return A <code>String</code> isolated in its own line.
+   * Wraps the given string with blank lines around it.
+   *
+   * @param toIsolate The string to isolate.
+   * @return The isolated string.
    */
   public static String isolatedLine(String toIsolate) {
-
-      return FormatStrings.NEW_LINE +
-              toIsolate +
-              FormatStrings.NEW_LINE;
+    return FormatStrings.NEW_LINE + toIsolate + FormatStrings.NEW_LINE;
   }
 
   /**
-   * Formats the given <code>String</code> by adding a <i>color</i>, <i>weight</i> and
-   * <i>decoration</i>, if given.
-   * 
-   * @param toFormat The <code>String</code> to be formatted.
-   * @param color      The color given to the <code>String</code>, <code>null</code> for default
-   *                   color.
-   * @param weight     The weight given to the <code>String</code>, <code>null</code> for default
-   *                   weight.
-   * @param decoration The decoration given to the <code>String</code>, <code>null</code> for no
-   *                   decoration.
-   * 
-   * @return A <code>String</code> representing the given one formatted.
+   * Formats a string by applying the provided ANSI color, weight and decoration.
+   *
+   * @param toFormat   The string to format.
+   * @param color      The color to apply, or {@code null} for no color.
+   * @param weight     The weight to apply, or {@code null} for no weight.
+   * @param decoration The decoration to apply, or {@code null} for no decoration.
+   * @return The formatted string.
    */
   public static String addFormat(String toFormat, AnsiColors color, AnsiWeights weight, AnsiDecorations decoration) {
     StringBuilder builder = new StringBuilder();
