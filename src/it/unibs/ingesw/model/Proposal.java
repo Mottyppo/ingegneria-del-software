@@ -23,18 +23,30 @@ public class Proposal {
     private static final String CATEGORY_LABEL =            ", categoria='";
     private static final String STATUS_LABEL =              ", stato=";
     private static final String FIELD_VALUES_LABEL =        ", campi=";
+    private static final String FIELD_TYPES_LABEL =         ", tipi campi=";
     private static final String TO_STRING_SUFFIX =          "}";
 
     private final int id;
     private final String categoryName;
     private Map<String, String> fieldValues;
+    private Map<String, DataType> fieldTypes;
     private ProposalStatus currentStatus;
     private List<StateLog> statusHistory;
 
     public Proposal(int id, String categoryName, Map<String, String> fieldValues) {
+        this(id, categoryName, fieldValues, null);
+    }
+
+    public Proposal(
+            int id,
+            String categoryName,
+            Map<String, String> fieldValues,
+            Map<String, DataType> fieldTypes
+    ) {
         this.id = id;
         this.categoryName = categoryName;
         this.fieldValues = fieldValues == null ? new LinkedHashMap<>() : new LinkedHashMap<>(fieldValues);
+        this.fieldTypes = fieldTypes == null ? new LinkedHashMap<>() : new LinkedHashMap<>(fieldTypes);
         this.currentStatus = ProposalStatus.CREATED;
         this.statusHistory = new ArrayList<>();
         appendState(ProposalStatus.CREATED);
@@ -53,6 +65,11 @@ public class Proposal {
         return Collections.unmodifiableMap(fieldValues);
     }
 
+    public DataType getFieldType(String fieldName) {
+        ensureFieldTypes();
+        return fieldTypes.get(fieldName);
+    }
+
     public ProposalStatus getCurrentStatus() {
         return currentStatus;
     }
@@ -62,7 +79,15 @@ public class Proposal {
         return Collections.unmodifiableList(statusHistory);
     }
 
-    //TODO: test here
+    /**
+     * Retrieves the publication date of the proposal.
+     * <p>
+     * The publication date is determined by finding the most recent timestamp
+     * in the status history where the proposal reached the {@link ProposalStatus#OPEN} state.
+     * </p>
+     *
+     * @return The timestamp of the publication as a {@code String}, or {@code null} if the proposal has never been opened.
+     */
     public String getPublicationDate() {
         String timestamp = null;
         for(StateLog state : statusHistory) {
@@ -114,6 +139,12 @@ public class Proposal {
         }
     }
 
+    private void ensureFieldTypes() {
+        if (fieldTypes == null) {
+            fieldTypes = new LinkedHashMap<>();
+        }
+    }
+
     private void ensureHistory() {
         if (statusHistory == null) {
             statusHistory = new ArrayList<>();
@@ -127,6 +158,7 @@ public class Proposal {
                 CATEGORY_LABEL + categoryName + '\'' +
                 STATUS_LABEL + currentStatus +
                 FIELD_VALUES_LABEL + fieldValues +
+                FIELD_TYPES_LABEL + fieldTypes +
                 TO_STRING_SUFFIX;
     }
 }

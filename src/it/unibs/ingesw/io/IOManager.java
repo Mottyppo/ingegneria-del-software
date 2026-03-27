@@ -30,12 +30,13 @@ import java.util.List;
  * <ul>
  *   <li>Reads and writes the system configuration.</li>
  *   <li>Reads and writes categories and configurator credentials.</li>
- *   <li>Reads and writes the proposal archive used by the board.</li>
+ *   <li>Reads and writes the full proposal archive (created, valid, and open proposals).</li>
  *   <li>Creates the data folder automatically and prints formatted I/O errors.</li>
  * </ul>
  */
 public class IOManager {
-    private static final String DATA_DIR = "data";
+    private static final String DEFAULT_DATA_DIR = "data";
+    private static final String DATA_DIR_PROPERTY = "ingesw.data.dir";
     private static final String CONFIG_FILE = "config.json";
     private static final String CATEGORIES_FILE = "categories.json";
     private static final String USERS_FILE = "users.json";
@@ -46,12 +47,17 @@ public class IOManager {
     private static final String ERROR_WRITE_TEMPLATE = "Errore nella scrittura del file %s: %s";
 
     private final Gson gson;
+    private final Path dataDir;
 
     /**
      * Creates an I/O manager and ensures the data directory exists.
+     *
+     * <p>The base folder can be overridden through system property
+     * {@code ingesw.data.dir}; when missing, {@code data} is used.</p>
      */
     public IOManager() {
         this.gson = new GsonBuilder().setPrettyPrinting().create();
+        this.dataDir = Paths.get(System.getProperty(DATA_DIR_PROPERTY, DEFAULT_DATA_DIR));
         ensureDataDir();
     }
 
@@ -145,7 +151,7 @@ public class IOManager {
      */
     private void ensureDataDir() {
         try {
-            Files.createDirectories(Paths.get(DATA_DIR));
+            Files.createDirectories(dataDir);
         } catch (IOException exception) {
             String message = ERROR_DIR_CREATION_TEMPLATE.formatted(exception.getMessage());
             printError(message);
@@ -159,7 +165,7 @@ public class IOManager {
      * @return The resolved path.
      */
     private Path resolve(String filename) {
-        return Paths.get(DATA_DIR, filename);
+        return dataDir.resolve(filename);
     }
 
     /**

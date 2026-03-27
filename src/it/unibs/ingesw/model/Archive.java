@@ -49,23 +49,46 @@ public class Archive {
     }
 
     /**
-     * Adds a proposal to the archive only if it is currently open.
+     * Saves a proposal in the archive. If another proposal with the same id exists,
+     * it gets replaced.
      *
      * @param proposal The proposal to persist.
-     * @return {@code true} if the proposal is saved, {@code false} otherwise.
+     * @return {@code true} if the proposal has been saved, {@code false} otherwise.
      */
-    public boolean addOpenProposal(Proposal proposal) {
-        if (proposal == null || proposal.getCurrentStatus() != ProposalStatus.OPEN) {
+    public boolean saveProposal(Proposal proposal) {
+        if (proposal == null) {
             return false;
         }
         ensureProposals();
-        for (Proposal current : proposals) {
+        for (int i = 0; i < proposals.size(); i++) {
+            Proposal current = proposals.get(i);
             if (current != null && current.getId() == proposal.getId()) {
-                return false;
+                proposals.set(i, proposal);
+                return true;
             }
         }
         proposals.add(proposal);
         return true;
+    }
+
+    /**
+     * Returns all proposals currently in the requested status.
+     *
+     * @param status The status to filter by.
+     * @return An immutable list of filtered proposals.
+     */
+    public List<Proposal> getByStatus(ProposalStatus status) {
+        ensureProposals();
+        List<Proposal> filtered = new ArrayList<>();
+        if (status == null) {
+            return Collections.unmodifiableList(filtered);
+        }
+        for (Proposal proposal : proposals) {
+            if (proposal != null && proposal.getCurrentStatus() == status) {
+                filtered.add(proposal);
+            }
+        }
+        return Collections.unmodifiableList(filtered);
     }
 
     /**
@@ -74,12 +97,8 @@ public class Archive {
      * @return Map category -> open proposals.
      */
     public Map<String, List<Proposal>> getOpenByCategory() {
-        ensureProposals();
         Map<String, List<Proposal>> grouped = new LinkedHashMap<>();
-        for (Proposal proposal : proposals) {
-            if (proposal == null || proposal.getCurrentStatus() != ProposalStatus.OPEN) {
-                continue;
-            }
+        for (Proposal proposal : getByStatus(ProposalStatus.OPEN)) {
             String categoryName = proposal.getCategoryName();
             if (categoryName == null || categoryName.isBlank()) {
                 categoryName = "Senza categoria";

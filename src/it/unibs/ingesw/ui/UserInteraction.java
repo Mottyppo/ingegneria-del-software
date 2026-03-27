@@ -1,11 +1,7 @@
 package it.unibs.ingesw.ui;
 
-import it.unibs.ingesw.console.format.Alignment;
-import it.unibs.ingesw.console.format.AnsiColors;
-import it.unibs.ingesw.console.format.AnsiDecorations;
-import it.unibs.ingesw.console.format.AnsiWeights;
+import it.unibs.ingesw.console.format.*;
 import it.unibs.ingesw.console.table.CommandLineTable;
-import it.unibs.ingesw.console.format.FormatStrings;
 import it.unibs.ingesw.console.input.InputData;
 import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.model.DataType;
@@ -27,8 +23,8 @@ import java.util.stream.Collectors;
 /**
  * Handles all command-line interactions with the user.
  *
- * <p>The class centralizes prompts, menus, formatted output messages, and table rendering used by
- * the application flow. It is intentionally focused on display and input concerns, while business
+ * <p>The class centralizes prompts, menus, formatted output messages, and rendering used by the
+ * application flow. It is intentionally focused on display and input concerns, while business
  * decisions are delegated to the interaction manager.</p>
  *
  * <p>All the methods in this class will remain undocumented,
@@ -38,8 +34,8 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Displays formatted headings, success, cancellation, and error messages.</li>
  *   <li>Provides menu and prompt wrappers for each user choice.</li>
- *   <li>Reads typed proposal values (including date/time validation in user format).</li>
- *   <li>Renders fields and board proposals in tabular form for easier review.</li>
+ *   <li>Reads typed proposal values (including date/time and decimal validation in user format).</li>
+ *   <li>Renders field lists in tabular form and board proposals as categorized bullet lists.</li>
  * </ul>
  */
 public class UserInteraction {
@@ -96,13 +92,15 @@ public class UserInteraction {
     private static final String SPECIFIC_FIELD_REMOVE_FAILURE_MESSAGE = "Impossibile rimuovere il campo specifico.";
     private static final String SPECIFIC_FIELD_TOGGLE_FAILURE_MESSAGE = "Impossibile aggiornare il campo specifico.";
     private static final String PROPOSAL_INVALID_MESSAGE = "Proposta non valida: controlla campi e vincoli.";
-    private static final String PROPOSAL_VALID_MESSAGE_TEMPLATE = "Proposta valida creata (ID temporaneo: %d).";
-    private static final String PROPOSAL_DISCARDED_MESSAGE = "Proposta valida non pubblicata: non verra' salvata.";
+    private static final String PROPOSAL_VALID_MESSAGE_TEMPLATE = "Proposta valida creata e salvata (ID: %d).";
+    private static final String PROPOSAL_DISCARDED_MESSAGE = "Proposta valida non pubblicata: resta valida in archivio.";
+    private static final String PROPOSAL_CREATED_NOT_VALID_TEMPLATE = "Proposta #%d creata e salvata in archivio ma non valida.";
     private static final String PROPOSAL_PUBLISH_SUCCESS_MESSAGE = "Proposta pubblicata in bacheca.";
     private static final String PROPOSAL_PUBLISH_FAILURE_MESSAGE = "Impossibile pubblicare la proposta.";
     private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
     private static final String DATE_FORMAT_ERROR_MESSAGE = "Formato data non valido. Usa GG/MM/AAAA.";
     private static final String TIME_FORMAT_ERROR_MESSAGE = "Formato ora non valido. Usa HH:MM.";
+    private static final String DECIMAL_FORMAT_ERROR_MESSAGE = "Formato decimale non valido. Usa es. 12,50 oppure 12.50.";
     private static final String BOOLEAN_VALUE_PROMPT_TEMPLATE = "\"%s\" vale Si";
     private static final String FIELD_VALUE_PROMPT_TEMPLATE = "Valore \"%s\" (%s): ";
     private static final String ASK_OPTIONAL_FIELD_TEMPLATE = "Vuoi compilare il campo facoltativo \"%s\"";
@@ -137,12 +135,14 @@ public class UserInteraction {
 
     private static final String PROPOSALS_MENU_TITLE = "Proposte";
     private static final String PROPOSALS_CREATE = "Crea proposta";
+    private static final String PROPOSALS_PUBLISH_VALID = "Pubblica proposta valida";
     private static final String PROPOSALS_SHOW_BOARD = "Visualizza bacheca per categoria";
 
     private static final String CHOOSE_COMMON_TO_REMOVE = "Seleziona il campo comune da rimuovere";
     private static final String CHOOSE_COMMON_TO_EDIT = "Seleziona il campo comune da modificare";
     private static final String CHOOSE_CATEGORY_TO_REMOVE = "Seleziona la categoria da rimuovere";
     private static final String CHOOSE_CATEGORY = "Seleziona la categoria";
+    private static final String CHOOSE_VALID_PROPOSAL = "Seleziona la proposta valida da pubblicare";
     private static final String CHOOSE_SPECIFIC_TO_REMOVE = "Seleziona il campo da rimuovere";
     private static final String CHOOSE_SPECIFIC_TO_EDIT = "Seleziona il campo da modificare";
 
@@ -163,10 +163,6 @@ public class UserInteraction {
     private static final String TABLE_HEADER_MANDATORY = "Obblig.";
     private static final String TABLE_HEADER_FIELD_TYPE = "Tipo";
     private static final String TABLE_HEADER_DATA_TYPE = "Dato";
-    private static final String TABLE_HEADER_ID = "ID";
-    private static final String TABLE_HEADER_PUBLICATION = "Pubblicata";
-    private static final String TABLE_HEADER_STATUS = "Stato";
-    private static final String TABLE_HEADER_VALUES = "Valori";
     private static final String TABLE_MANDATORY_YES = "Si";
     private static final String TABLE_MANDATORY_NO = "No";
 
@@ -229,10 +225,9 @@ public class UserInteraction {
 
     private static final List<String> PROPOSALS_MENU_ENTRIES = List.of(
         PROPOSALS_CREATE,
+        PROPOSALS_PUBLISH_VALID,
         PROPOSALS_SHOW_BOARD
     );
-
-    public UserInteraction() {}
 
     public void clearConsole() {
         Menu.clearConsole();
@@ -379,11 +374,17 @@ public class UserInteraction {
     }
 
     public String readFieldValue(Field field) {
-        String prompt = FIELD_VALUE_PROMPT_TEMPLATE.formatted(field.getName(), field.getDataType().toString());
+        String dataTypeLabel = switch (field.getDataType()) {
+            case DATE -> field.getDataType() + ", formato GG/MM/AAAA";
+            case TIME -> field.getDataType() + ", formato HH:MM";
+            case DECIMAL -> field.getDataType() + ", es. 12,50 o 12.50";
+            default -> field.getDataType().toString();
+        };
+        String prompt = FIELD_VALUE_PROMPT_TEMPLATE.formatted(field.getName(), dataTypeLabel);
         return switch (field.getDataType()) {
             case STRING -> InputData.readNonEmptyString(prompt, false).trim();
             case INTEGER -> Integer.toString(InputData.readInteger(prompt));
-            case DECIMAL -> Double.toString(InputData.readDouble(prompt));
+            case DECIMAL -> readDecimal(prompt);
             case DATE -> readDate(prompt);
             case TIME -> readTime(prompt);
             case BOOLEAN -> Boolean.toString(InputData.readYesOrNo(BOOLEAN_VALUE_PROMPT_TEMPLATE.formatted(field.getName())));
@@ -404,6 +405,10 @@ public class UserInteraction {
 
     public void printProposalDiscarded() {
         printCancelled(PROPOSAL_DISCARDED_MESSAGE);
+    }
+
+    public void printProposalCreatedNotValid(int proposalId) {
+        printCancelled(PROPOSAL_CREATED_NOT_VALID_TEMPLATE.formatted(proposalId));
     }
 
     public void printOperationResult(boolean result, String successMessage, String failMessage) {
@@ -471,32 +476,30 @@ public class UserInteraction {
 
         for (Map.Entry<String, List<Proposal>> entry : board.entrySet()) {
             printInfo(FULL_CATEGORY_TITLE_TEMPLATE.formatted(entry.getKey()));
-
-            CommandLineTable table = new CommandLineTable();
-            table.setShowVLines(true);
-            table.setCellsAlignment(Alignment.LEFT);
-            table.addHeaders(List.of(
-                    TABLE_HEADER_ID,
-                    TABLE_HEADER_PUBLICATION,
-                    TABLE_HEADER_STATUS,
-                    TABLE_HEADER_VALUES
-            ));
-
-            List<List<String>> rows = new ArrayList<>();
             for (Proposal proposal : entry.getValue()) {
-                String values = proposal.getFieldValues().entrySet().stream()
-                        .map(valueEntry -> valueEntry.getKey() + ": " + valueEntry.getValue())
-                        .collect(Collectors.joining(" | "));
-                rows.add(List.of(
-                        String.valueOf(proposal.getId()),
-                        proposal.getPublicationDate() == null ? "-" : proposal.getPublicationDate(),
-                        proposal.getCurrentStatus().toString(),
-                        values
-                ));
+                String publication = FormatValues.formatDateTime(proposal.getPublicationDate());
+                System.out.println("- Proposta #" + proposal.getId()
+                        + " | Stato: " + proposal.getCurrentStatus()
+                        + " | Pubblicata: " + publication);
+                for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
+                    String formattedValue = FormatValues.formatField(
+                            proposal,
+                            valueEntry.getKey(),
+                            valueEntry.getValue()
+                    );
+                    System.out.println("  - " + valueEntry.getKey() + ": " + formattedValue);
+                }
             }
-            table.addRows(rows);
-            System.out.println(table);
+            System.out.println();
         }
+    }
+
+    public int chooseValidProposalToPublish(List<Proposal> validProposals) {
+        return chooseIndex(
+                validProposals,
+                CHOOSE_VALID_PROPOSAL,
+                this::summarizeProposalForSelection
+        );
     }
 
     public <T> int chooseIndex(List<T> items, String title, Function<T, String> nameExtractor) {
@@ -646,6 +649,24 @@ public class UserInteraction {
         List<String> entries = Arrays.stream(DataType.values()).map(Enum::toString).collect(Collectors.toList());
         int choice = new Menu(title, entries, true, Alignment.CENTER, true).choose();
         return choice == 0 ? null : DataType.values()[choice - 1];
+    }
+
+    private String summarizeProposalForSelection(Proposal proposal) {
+        String title = proposal.getFieldValues().getOrDefault("Titolo", "(senza titolo)");
+        return "#" + proposal.getId() + " | " + proposal.getCategoryName() + " | " + title;
+    }
+
+    private String readDecimal(String prompt) {
+        while (true) {
+            String raw = InputData.readNonEmptyString(prompt, false).trim();
+            String normalized = raw.replace(',', '.');
+            try {
+                double value = Double.parseDouble(normalized);
+                return Double.toString(value);
+            } catch (NumberFormatException exception) {
+                printError(DECIMAL_FORMAT_ERROR_MESSAGE);
+            }
+        }
     }
 
     private String readDate(String prompt) {

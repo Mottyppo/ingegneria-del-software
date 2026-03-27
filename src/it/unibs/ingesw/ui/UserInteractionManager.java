@@ -7,6 +7,7 @@ import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
+import it.unibs.ingesw.model.ProposalStatus;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -394,7 +395,8 @@ public class UserInteractionManager {
             switch (choice) {
                 case 0 -> exit = true;
                 case 1 -> createProposal();
-                case 2 -> interaction.showBoardByCategory(manager.getBoardByCategory());
+                case 2 -> publishValidProposal();
+                case 3 -> interaction.showBoardByCategory(manager.getBoardByCategory());
                 default -> interaction.printInvalidChoice();
             }
         }
@@ -436,6 +438,11 @@ public class UserInteractionManager {
             return;
         }
 
+        if (proposal.getCurrentStatus() != ProposalStatus.VALID) {
+            interaction.printProposalCreatedNotValid(proposal.getId());
+            return;
+        }
+
         interaction.printProposalValid(proposal.getId());
         if (!interaction.askPublishProposal()) {
             interaction.printProposalDiscarded();
@@ -444,6 +451,24 @@ public class UserInteractionManager {
 
         executeAndPrint(
             manager.publishProposal(proposal),
+            interaction.proposalPublishSuccessMessage(),
+            interaction.proposalPublishFailureMessage()
+        );
+    }
+
+    /**
+     * Allows the configurator to choose one valid proposal and publish it later.
+     */
+    private void publishValidProposal() {
+        List<Proposal> validProposals = manager.getValidProposals();
+        int index = interaction.chooseValidProposalToPublish(validProposals);
+        if (index < 0) {
+            return;
+        }
+
+        Proposal selected = validProposals.get(index);
+        executeAndPrint(
+            manager.publishProposal(selected),
             interaction.proposalPublishSuccessMessage(),
             interaction.proposalPublishFailureMessage()
         );

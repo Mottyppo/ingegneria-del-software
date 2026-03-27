@@ -363,12 +363,15 @@ public class SystemManager {
     }
 
     /**
-     * Creates a valid proposal for the selected category using raw UI field values.
+     * Creates and persists a proposal for the selected category using raw UI field values.
+     *
+     * <p>The proposal is always stored as {@link ProposalStatus#CREATED}. If domain validation
+     * succeeds, it is promoted to {@link ProposalStatus#VALID} and persisted again.</p>
      *
      * @param categoryIndex The selected category index.
      * @param rawValues     The raw values inserted by the configurator.
      *
-     * @return A valid proposal in {@link ProposalStatus#VALID}, or {@code null} if validation fails.
+     * @return The created proposal, or {@code null} for structural validation failures.
      */
     public Proposal createProposal(int categoryIndex, Map<String, String> rawValues) {
         if (isInvalidIndex(categoryIndex, categories) || rawValues == null) {
@@ -377,13 +380,19 @@ public class SystemManager {
         Category category = categories.get(categoryIndex);
         List<Field> fields = getSharedFieldsForCategory(category);
         Map<String, String> normalized = normalizeAndValidateValues(fields, rawValues);
-        if (normalized == null || !checkDomainRules(normalized)) {
+        if (normalized == null) {
             return null;
         }
 
-        Proposal proposal = new Proposal(archive.nextId(), category.getName(), normalized);
-        if (!proposal.markAsValid()) {
-            return null;
+        Map<String, DataType> fieldTypes = extractFieldTypes(fields, normalized);
+        Proposal proposal = new Proposal(archive.nextId(), category.getName(), normalized, fieldTypes);
+
+        archive.saveProposal(proposal);
+        ioManager.writeArchive(archive);
+
+        if (checkDomainRules(normalized) && proposal.markAsValid()) {
+            archive.saveProposal(proposal);
+            ioManager.writeArchive(archive);
         }
         return proposal;
     }
@@ -399,14 +408,25 @@ public class SystemManager {
         if (proposal == null) {
             return false;
         }
-        if (!proposal.markAsOpen()) {
+        Proposal persisted = findArchivedProposalById(proposal.getId());
+        if (persisted == null) {
             return false;
         }
-        if (!archive.addOpenProposal(proposal)) {
+        if (!persisted.markAsOpen()) {
             return false;
         }
+        archive.saveProposal(persisted);
         ioManager.writeArchive(archive);
         return true;
+    }
+
+    /**
+     * Returns all proposals currently publishable.
+     *
+     * @return An immutable list of proposals in state {@link ProposalStatus#VALID}.
+     */
+    public List<Proposal> getValidProposals() {
+        return archive.getByStatus(ProposalStatus.VALID);
     }
 
     /**
@@ -622,6 +642,25 @@ public class SystemManager {
         } catch (NumberFormatException exception) {
             return null;
         }
+    }
+
+    private Map<String, DataType> extractFieldTypes(List<Field> fields, Map<String, String> values) {
+        Map<String, DataType> types = new LinkedHashMap<>();
+        for (Field field : fields) {
+            if (values.containsKey(field.getName())) {
+                types.put(field.getName(), field.getDataType());
+            }
+        }
+        return types;
+    }
+
+    private Proposal findArchivedProposalById(int id) {
+        for (Proposal proposal : archive.getProposals()) {
+            if (proposal.getId() == id) {
+                return proposal;
+            }
+        }
+        return null;
     }
 
     private String parseBoolean(String value) {

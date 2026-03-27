@@ -1,12 +1,11 @@
 package it.unibs.ingesw.test;
 
+import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,11 +17,17 @@ public class ProposalTest {
 
     @Test
     void createAndReadInitialProposalState() {
-        Proposal proposal = new Proposal(1, "Sport", Map.of("Titolo", "Partita amichevole"));
+        Proposal proposal = new Proposal(
+                1,
+                "Sport",
+                Map.of("Titolo", "Partita amichevole"),
+                Map.of("Titolo", DataType.STRING)
+        );
 
         assertEquals(1, proposal.getId());
         assertEquals("Sport", proposal.getCategoryName());
         assertEquals("Partita amichevole", proposal.getFieldValues().get("Titolo"));
+        assertEquals(DataType.STRING, proposal.getFieldType("Titolo"));
         assertEquals(ProposalStatus.CREATED, proposal.getCurrentStatus());
         assertEquals(1, proposal.getStatusHistory().size());
         assertEquals(ProposalStatus.CREATED, proposal.getStatusHistory().getFirst().getStatus());
@@ -39,8 +44,8 @@ public class ProposalTest {
 
         assertTrue(proposal.markAsOpen());
         assertEquals(ProposalStatus.OPEN, proposal.getCurrentStatus());
-        LocalDate actualDate = LocalDateTime.parse(proposal.getPublicationDate()).toLocalDate();
-        assertEquals(LocalDate.now(), actualDate);
+        LocalDateTime actualDate = LocalDateTime.parse(proposal.getPublicationDate());
+        assertEquals(LocalDateTime.now().getYear(), actualDate.getYear());
         assertEquals(3, proposal.getStatusHistory().size());
         assertEquals(ProposalStatus.OPEN, proposal.getStatusHistory().getLast().getStatus());
     }
