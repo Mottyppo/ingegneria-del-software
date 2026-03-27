@@ -6,11 +6,13 @@ import it.unibs.ingesw.model.Configurator;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.FieldType;
+import it.unibs.ingesw.model.Proposal;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -24,6 +26,7 @@ import java.util.Set;
  *   <li>Authenticates configurators and manages first-access credential updates.</li>
  *   <li>Drives base, common, and specific field management workflows.</li>
  *   <li>Handles category CRUD operations through menu-based interactions.</li>
+ *   <li>Handles proposal creation, optional publication, and board visualization.</li>
  * </ul>
  */
 public class UserInteractionManager {
@@ -171,6 +174,11 @@ public class UserInteractionManager {
                     }
                 }
                 case 4 -> {
+                    if (requireBaseFields()) {
+                        proposalsMenu();
+                    }
+                }
+                case 5 -> {
                     if (requireBaseFields()) {
                         showFullCategories();
                     }
@@ -373,6 +381,72 @@ public class UserInteractionManager {
                 default -> interaction.printInvalidChoice();
             }
         }
+    }
+
+    /**
+     * Displays and handles proposal workflows.
+     */
+    private void proposalsMenu() {
+        boolean exit = false;
+
+        while (!exit) {
+            int choice = interaction.chooseProposalsMenu();
+            switch (choice) {
+                case 0 -> exit = true;
+                case 1 -> createProposal();
+                case 2 -> interaction.showBoardByCategory(manager.getBoardByCategory());
+                default -> interaction.printInvalidChoice();
+            }
+        }
+    }
+
+    /**
+     * Guides the user in creating a proposal and optionally publishing it.
+     */
+    private void createProposal() {
+        List<Category> categories = manager.getCategories();
+        if (categories.isEmpty()) {
+            interaction.printNoCategoryAvailable();
+            return;
+        }
+
+        int categoryIndex = interaction.chooseIndex(
+            categories,
+            interaction.categorySelectionTitle(),
+            Category::getName
+        );
+        if (categoryIndex < 0) {
+            return;
+        }
+
+        Category category = categories.get(categoryIndex);
+        List<Field> fields = manager.getSharedFieldsForCategory(category);
+        Map<String, String> rawValues = new LinkedHashMap<>();
+
+        for (Field field : fields) {
+            if (!field.isMandatory() && !interaction.askFillOptionalField(field.getName())) {
+                continue;
+            }
+            rawValues.put(field.getName(), interaction.readFieldValue(field));
+        }
+
+        Proposal proposal = manager.createProposal(categoryIndex, rawValues);
+        if (proposal == null) {
+            interaction.printProposalInvalid();
+            return;
+        }
+
+        interaction.printProposalValid(proposal.getId());
+        if (!interaction.askPublishProposal()) {
+            interaction.printProposalDiscarded();
+            return;
+        }
+
+        executeAndPrint(
+            manager.publishProposal(proposal),
+            interaction.proposalPublishSuccessMessage(),
+            interaction.proposalPublishFailureMessage()
+        );
     }
 
     /**

@@ -36,6 +36,13 @@
       "dataType": "DATE"
     },
     {
+      "name": "Data conclusiva",
+      "description": "data di conclusione dell\u0027iniziativa",
+      "mandatory": true,
+      "type": "BASE",
+      "dataType": "DATE"
+    },
+    {
       "name": "Ora",
       "description": "ora di ritrovo dei partecipanti",
       "mandatory": true,
@@ -48,13 +55,6 @@
       "mandatory": true,
       "type": "BASE",
       "dataType": "DECIMAL"
-    },
-    {
-      "name": "Data conclusiva",
-      "description": "data di conclusione dell\u0027iniziativa",
-      "mandatory": true,
-      "type": "BASE",
-      "dataType": "DATE"
     }
   ],
   "commonFields": [

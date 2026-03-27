@@ -10,10 +10,17 @@ import it.unibs.ingesw.console.input.InputData;
 import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.Proposal;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,7 +38,8 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>Displays formatted headings, success, cancellation, and error messages.</li>
  *   <li>Provides menu and prompt wrappers for each user choice.</li>
- *   <li>Renders field data in tabular form for easier review.</li>
+ *   <li>Reads typed proposal values (including date/time validation in user format).</li>
+ *   <li>Renders fields and board proposals in tabular form for easier review.</li>
  * </ul>
  */
 public class UserInteraction {
@@ -87,12 +95,26 @@ public class UserInteraction {
     private static final String SPECIFIC_FIELD_REMOVE_SUCCESS_MESSAGE = "Campo specifico rimosso.";
     private static final String SPECIFIC_FIELD_REMOVE_FAILURE_MESSAGE = "Impossibile rimuovere il campo specifico.";
     private static final String SPECIFIC_FIELD_TOGGLE_FAILURE_MESSAGE = "Impossibile aggiornare il campo specifico.";
+    private static final String PROPOSAL_INVALID_MESSAGE = "Proposta non valida: controlla campi e vincoli.";
+    private static final String PROPOSAL_VALID_MESSAGE_TEMPLATE = "Proposta valida creata (ID temporaneo: %d).";
+    private static final String PROPOSAL_DISCARDED_MESSAGE = "Proposta valida non pubblicata: non verra' salvata.";
+    private static final String PROPOSAL_PUBLISH_SUCCESS_MESSAGE = "Proposta pubblicata in bacheca.";
+    private static final String PROPOSAL_PUBLISH_FAILURE_MESSAGE = "Impossibile pubblicare la proposta.";
+    private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
+    private static final String DATE_FORMAT_ERROR_MESSAGE = "Formato data non valido. Usa GG/MM/AAAA.";
+    private static final String TIME_FORMAT_ERROR_MESSAGE = "Formato ora non valido. Usa HH:MM.";
+    private static final String BOOLEAN_VALUE_PROMPT_TEMPLATE = "\"%s\" vale Si";
+    private static final String FIELD_VALUE_PROMPT_TEMPLATE = "Valore \"%s\" (%s): ";
+    private static final String ASK_OPTIONAL_FIELD_TEMPLATE = "Vuoi compilare il campo facoltativo \"%s\"";
+    private static final String ASK_PUBLISH_PROPOSAL = "Vuoi pubblicare in bacheca la proposta valida";
 
     private static final String MAIN_MENU_TITLE = "Menu Configuratore";
-    private static final String MAIN_MENU_SHOW_BASE = "Campi Base";
+    private static final String MAIN_MENU_SHOW_BASE = "Visualizza campi base";
+    private static final String MAIN_MENU_SHOW_BASE_TITLE = "Campi Base";
     private static final String MAIN_MENU_SET_BASE = "Imposta campi base";
     private static final String MAIN_MENU_MANAGE_COMMON = "Gestisci campi comuni";
     private static final String MAIN_MENU_MANAGE_CATEGORIES = "Gestisci categorie";
+    private static final String MAIN_MENU_MANAGE_PROPOSALS = "Gestisci proposte";
     private static final String MAIN_MENU_SHOW_CATEGORIES = "Visualizza categorie e campi";
 
     private static final String COMMON_FIELDS_MENU_TITLE = "Campi Comuni";
@@ -112,6 +134,10 @@ public class UserInteraction {
     private static final String SPECIFIC_FIELDS_REMOVE = "Rimuovi campo specifico";
     private static final String SPECIFIC_FIELDS_TOGGLE = "Cambia obbligatorieta'";
     private static final String SPECIFIC_FIELDS_SHOW = "Visualizza campi specifici";
+
+    private static final String PROPOSALS_MENU_TITLE = "Proposte";
+    private static final String PROPOSALS_CREATE = "Crea proposta";
+    private static final String PROPOSALS_SHOW_BOARD = "Visualizza bacheca per categoria";
 
     private static final String CHOOSE_COMMON_TO_REMOVE = "Seleziona il campo comune da rimuovere";
     private static final String CHOOSE_COMMON_TO_EDIT = "Seleziona il campo comune da modificare";
@@ -137,6 +163,10 @@ public class UserInteraction {
     private static final String TABLE_HEADER_MANDATORY = "Obblig.";
     private static final String TABLE_HEADER_FIELD_TYPE = "Tipo";
     private static final String TABLE_HEADER_DATA_TYPE = "Dato";
+    private static final String TABLE_HEADER_ID = "ID";
+    private static final String TABLE_HEADER_PUBLICATION = "Pubblicata";
+    private static final String TABLE_HEADER_STATUS = "Stato";
+    private static final String TABLE_HEADER_VALUES = "Valori";
     private static final String TABLE_MANDATORY_YES = "Si";
     private static final String TABLE_MANDATORY_NO = "No";
 
@@ -156,6 +186,12 @@ public class UserInteraction {
     private static final String BASE_FIELD_FEE_DESCRIPTION = "spesa individuale stimata per l'iniziativa";
     private static final String BASE_FIELD_END_DATE_NAME = "Data conclusiva";
     private static final String BASE_FIELD_END_DATE_DESCRIPTION = "data di conclusione dell'iniziativa";
+    private static final DateTimeFormatter USER_DATE_FORMATTER = DateTimeFormatter
+            .ofPattern("dd/MM/uuuu")
+            .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter USER_TIME_FORMATTER = DateTimeFormatter
+            .ofPattern("HH:mm")
+            .withResolverStyle(ResolverStyle.STRICT);
 
     private static final String NEW_LINE = "\n";
 
@@ -165,9 +201,9 @@ public class UserInteraction {
         new BaseFieldTemplate(BASE_FIELD_DEADLINE_NAME, BASE_FIELD_DEADLINE_DESCRIPTION),
         new BaseFieldTemplate(BASE_FIELD_PLACE_NAME, BASE_FIELD_PLACE_DESCRIPTION),
         new BaseFieldTemplate(BASE_FIELD_START_DATE_NAME, BASE_FIELD_START_DATE_DESCRIPTION),
+        new BaseFieldTemplate(BASE_FIELD_END_DATE_NAME, BASE_FIELD_END_DATE_DESCRIPTION),
         new BaseFieldTemplate(BASE_FIELD_TIME_NAME, BASE_FIELD_TIME_DESCRIPTION),
-        new BaseFieldTemplate(BASE_FIELD_FEE_NAME, BASE_FIELD_FEE_DESCRIPTION),
-        new BaseFieldTemplate(BASE_FIELD_END_DATE_NAME, BASE_FIELD_END_DATE_DESCRIPTION)
+        new BaseFieldTemplate(BASE_FIELD_FEE_NAME, BASE_FIELD_FEE_DESCRIPTION)
     );
 
     private static final List<String> COMMON_FIELDS_MENU_ENTRIES = List.of(
@@ -189,6 +225,11 @@ public class UserInteraction {
         SPECIFIC_FIELDS_REMOVE,
         SPECIFIC_FIELDS_TOGGLE,
         SPECIFIC_FIELDS_SHOW
+    );
+
+    private static final List<String> PROPOSALS_MENU_ENTRIES = List.of(
+        PROPOSALS_CREATE,
+        PROPOSALS_SHOW_BOARD
     );
 
     public UserInteraction() {}
@@ -271,6 +312,7 @@ public class UserInteraction {
         entries.add(baseFieldsSet ? MAIN_MENU_SHOW_BASE : MAIN_MENU_SET_BASE);
         entries.add(MAIN_MENU_MANAGE_COMMON);
         entries.add(MAIN_MENU_MANAGE_CATEGORIES);
+        entries.add(MAIN_MENU_MANAGE_PROPOSALS);
         entries.add(MAIN_MENU_SHOW_CATEGORIES);
         return new Menu(MAIN_MENU_TITLE, entries, true, Alignment.CENTER, true).choose();
     }
@@ -289,6 +331,10 @@ public class UserInteraction {
 
     public int chooseCategoriesMenu() {
         return new Menu(CATEGORIES_MENU_TITLE, CATEGORIES_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
+    }
+
+    public int chooseProposalsMenu() {
+        return new Menu(PROPOSALS_MENU_TITLE, PROPOSALS_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
     }
 
     public int chooseSpecificFieldsMenu(String categoryName) {
@@ -326,6 +372,38 @@ public class UserInteraction {
 
     public DataType chooseFieldDataType() {
         return chooseDataType(CHOOSE_DATA_TYPE_FIELD);
+    }
+
+    public boolean askFillOptionalField(String fieldName) {
+        return InputData.readYesOrNo(ASK_OPTIONAL_FIELD_TEMPLATE.formatted(fieldName));
+    }
+
+    public String readFieldValue(Field field) {
+        String prompt = FIELD_VALUE_PROMPT_TEMPLATE.formatted(field.getName(), field.getDataType().toString());
+        return switch (field.getDataType()) {
+            case STRING -> InputData.readNonEmptyString(prompt, false).trim();
+            case INTEGER -> Integer.toString(InputData.readInteger(prompt));
+            case DECIMAL -> Double.toString(InputData.readDouble(prompt));
+            case DATE -> readDate(prompt);
+            case TIME -> readTime(prompt);
+            case BOOLEAN -> Boolean.toString(InputData.readYesOrNo(BOOLEAN_VALUE_PROMPT_TEMPLATE.formatted(field.getName())));
+        };
+    }
+
+    public boolean askPublishProposal() {
+        return InputData.readYesOrNo(ASK_PUBLISH_PROPOSAL);
+    }
+
+    public void printProposalInvalid() {
+        printError(PROPOSAL_INVALID_MESSAGE);
+    }
+
+    public void printProposalValid(int proposalId) {
+        printSuccess(PROPOSAL_VALID_MESSAGE_TEMPLATE.formatted(proposalId));
+    }
+
+    public void printProposalDiscarded() {
+        printCancelled(PROPOSAL_DISCARDED_MESSAGE);
     }
 
     public void printOperationResult(boolean result, String successMessage, String failMessage) {
@@ -385,6 +463,42 @@ public class UserInteraction {
         System.out.println(table);
     }
 
+    public void showBoardByCategory(Map<String, List<Proposal>> board) {
+        if (board == null || board.isEmpty()) {
+            printCancelled(NO_OPEN_PROPOSALS_MESSAGE);
+            return;
+        }
+
+        for (Map.Entry<String, List<Proposal>> entry : board.entrySet()) {
+            printInfo(FULL_CATEGORY_TITLE_TEMPLATE.formatted(entry.getKey()));
+
+            CommandLineTable table = new CommandLineTable();
+            table.setShowVLines(true);
+            table.setCellsAlignment(Alignment.LEFT);
+            table.addHeaders(List.of(
+                    TABLE_HEADER_ID,
+                    TABLE_HEADER_PUBLICATION,
+                    TABLE_HEADER_STATUS,
+                    TABLE_HEADER_VALUES
+            ));
+
+            List<List<String>> rows = new ArrayList<>();
+            for (Proposal proposal : entry.getValue()) {
+                String values = proposal.getFieldValues().entrySet().stream()
+                        .map(valueEntry -> valueEntry.getKey() + ": " + valueEntry.getValue())
+                        .collect(Collectors.joining(" | "));
+                rows.add(List.of(
+                        String.valueOf(proposal.getId()),
+                        proposal.getPublicationDate() == null ? "-" : proposal.getPublicationDate(),
+                        proposal.getCurrentStatus().toString(),
+                        values
+                ));
+            }
+            table.addRows(rows);
+            System.out.println(table);
+        }
+    }
+
     public <T> int chooseIndex(List<T> items, String title, Function<T, String> nameExtractor) {
         if (items == null || items.isEmpty()) {
             printNoElementAvailable();
@@ -421,7 +535,7 @@ public class UserInteraction {
     }
 
     public String baseFieldsTitle() {
-        return MAIN_MENU_SHOW_BASE;
+        return MAIN_MENU_SHOW_BASE_TITLE;
     }
 
     public String commonFieldsTitle() {
@@ -504,6 +618,14 @@ public class UserInteraction {
         return SPECIFIC_FIELD_TOGGLE_FAILURE_MESSAGE;
     }
 
+    public String proposalPublishSuccessMessage() {
+        return PROPOSAL_PUBLISH_SUCCESS_MESSAGE;
+    }
+
+    public String proposalPublishFailureMessage() {
+        return PROPOSAL_PUBLISH_FAILURE_MESSAGE;
+    }
+
     private void printInfo(String message) {
         System.out.println(NEW_LINE + message);
     }
@@ -524,6 +646,30 @@ public class UserInteraction {
         List<String> entries = Arrays.stream(DataType.values()).map(Enum::toString).collect(Collectors.toList());
         int choice = new Menu(title, entries, true, Alignment.CENTER, true).choose();
         return choice == 0 ? null : DataType.values()[choice - 1];
+    }
+
+    private String readDate(String prompt) {
+        while (true) {
+            String raw = InputData.readNonEmptyString(prompt, false).trim();
+            try {
+                LocalDate parsed = LocalDate.parse(raw, USER_DATE_FORMATTER);
+                return parsed.format(USER_DATE_FORMATTER);
+            } catch (DateTimeParseException exception) {
+                printError(DATE_FORMAT_ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private String readTime(String prompt) {
+        while (true) {
+            String raw = InputData.readNonEmptyString(prompt, false).trim();
+            try {
+                LocalTime parsed = LocalTime.parse(raw, USER_TIME_FORMATTER);
+                return parsed.format(USER_TIME_FORMATTER);
+            } catch (DateTimeParseException exception) {
+                printError(TIME_FORMAT_ERROR_MESSAGE);
+            }
+        }
     }
 
     public record BaseFieldTemplate(String name, String description) {

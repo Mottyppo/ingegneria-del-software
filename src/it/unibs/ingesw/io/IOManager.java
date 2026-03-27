@@ -3,6 +3,7 @@ package it.unibs.ingesw.io;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import it.unibs.ingesw.model.Archive;
 import it.unibs.ingesw.console.format.AnsiColors;
 import it.unibs.ingesw.console.format.AnsiWeights;
 import it.unibs.ingesw.console.format.FormatStrings;
@@ -29,6 +30,7 @@ import java.util.List;
  * <ul>
  *   <li>Reads and writes the system configuration.</li>
  *   <li>Reads and writes categories and configurator credentials.</li>
+ *   <li>Reads and writes the proposal archive used by the board.</li>
  *   <li>Creates the data folder automatically and prints formatted I/O errors.</li>
  * </ul>
  */
@@ -37,6 +39,7 @@ public class IOManager {
     private static final String CONFIG_FILE = "config.json";
     private static final String CATEGORIES_FILE = "categories.json";
     private static final String USERS_FILE = "users.json";
+    private static final String PROPOSALS_FILE = "proposals.json";
 
     private static final String ERROR_DIR_CREATION_TEMPLATE = "Impossibile creare la cartella dati: %s";
     private static final String ERROR_READ_TEMPLATE = "Errore nella lettura del file %s: %s";
@@ -116,6 +119,25 @@ public class IOManager {
      */
     public void writeConfigurators(List<Configurator> configurators) {
         writeJson(resolve(USERS_FILE), configurators);
+    }
+
+    /**
+     * Loads the proposal archive from disk.
+     *
+     * @return The proposal archive, or an empty archive if no data is available.
+     */
+    public Archive readArchive() {
+        Archive archive = readJson(resolve(PROPOSALS_FILE), Archive.class, new Archive());
+        return archive == null ? new Archive() : archive;
+    }
+
+    /**
+     * Persists the proposal archive to disk.
+     *
+     * @param archive The archive to store.
+     */
+    public void writeArchive(Archive archive) {
+        writeJson(resolve(PROPOSALS_FILE), archive);
     }
 
     /**

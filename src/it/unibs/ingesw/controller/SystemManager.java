@@ -1,14 +1,25 @@
 package it.unibs.ingesw.controller;
 
 import it.unibs.ingesw.io.IOManager;
+import it.unibs.ingesw.model.Archive;
 import it.unibs.ingesw.model.Category;
 import it.unibs.ingesw.model.Configurator;
+import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.Proposal;
+import it.unibs.ingesw.model.ProposalStatus;
 import it.unibs.ingesw.model.SystemConfig;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Main controller of the application, coordinates persistence and validation for the application domain.
@@ -18,6 +29,8 @@ import java.util.List;
  *   <li>Authenticates configurators and updates their credentials.</li>
  *   <li>Manages base, common, and category-specific fields.</li>
  *   <li>Ensures category and field names are unique in a case-insensitive way.</li>
+ *   <li>Validates and creates proposals according to business rules.</li>
+ *   <li>Publishes valid proposals and exposes the board grouped by category.</li>
  * </ul>
  */
 public class SystemManager {
@@ -25,17 +38,30 @@ public class SystemManager {
     private static final String DEFAULT_CONFIGURATOR_ONE_PASSWORD = "ginevra1864";
     private static final String DEFAULT_CONFIGURATOR_TWO_USERNAME = "alpinibrescia";
     private static final String DEFAULT_CONFIGURATOR_TWO_PASSWORD = "nikolajewka1943";
+    private static final String DEADLINE_FIELD_NAME = "Termine ultimo di iscrizione";
+    private static final String START_DATE_FIELD_NAME = "Data";
+    private static final String END_DATE_FIELD_NAME = "Data conclusiva";
+    private static final String PARTICIPANTS_FIELD_NAME = "Numero di partecipanti";
+    private static final String FEE_FIELD_NAME = "Quota individuale";
+    private static final DateTimeFormatter USER_DATE_FORMATTER = DateTimeFormatter
+            .ofPattern("dd/MM/uuuu")
+            .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter USER_TIME_FORMATTER = DateTimeFormatter
+            .ofPattern("HH:mm")
+            .withResolverStyle(ResolverStyle.STRICT);
 
     private final IOManager ioManager;
     private final List<Configurator> configurators;
     private final List<Category> categories;
     private final SystemConfig config;
+    private final Archive archive;
 
     public SystemManager() {
         this.ioManager = new IOManager();
         this.config = ioManager.readConfig();
         this.categories = ioManager.readCategories();
         this.configurators = ioManager.readConfigurators();
+        this.archive = ioManager.readArchive();
 
         if (this.configurators.isEmpty()) {
             initializeDefaultConfigurators();
@@ -337,6 +363,62 @@ public class SystemManager {
     }
 
     /**
+     * Creates a valid proposal for the selected category using raw UI field values.
+     *
+     * @param categoryIndex The selected category index.
+     * @param rawValues     The raw values inserted by the configurator.
+     *
+     * @return A valid proposal in {@link ProposalStatus#VALID}, or {@code null} if validation fails.
+     */
+    public Proposal createProposal(int categoryIndex, Map<String, String> rawValues) {
+        if (isInvalidIndex(categoryIndex, categories) || rawValues == null) {
+            return null;
+        }
+        Category category = categories.get(categoryIndex);
+        List<Field> fields = getSharedFieldsForCategory(category);
+        Map<String, String> normalized = normalizeAndValidateValues(fields, rawValues);
+        if (normalized == null || !checkDomainRules(normalized)) {
+            return null;
+        }
+
+        Proposal proposal = new Proposal(archive.nextId(), category.getName(), normalized);
+        if (!proposal.markAsValid()) {
+            return null;
+        }
+        return proposal;
+    }
+
+    /**
+     * Publishes a valid proposal to the board and persists it in the archive.
+     *
+     * @param proposal The proposal to publish.
+     *
+     * @return {@code true} if publishing succeeds, {@code false} otherwise.
+     */
+    public boolean publishProposal(Proposal proposal) {
+        if (proposal == null) {
+            return false;
+        }
+        if (!proposal.markAsOpen()) {
+            return false;
+        }
+        if (!archive.addOpenProposal(proposal)) {
+            return false;
+        }
+        ioManager.writeArchive(archive);
+        return true;
+    }
+
+    /**
+     * Returns the current board grouped by category.
+     *
+     * @return Category to open proposal mapping.
+     */
+    public Map<String, List<Proposal>> getBoardByCategory() {
+        return archive.getOpenByCategory();
+    }
+
+    /**
      * Initializes the default configurators used when no users are stored yet.
      */
     private void initializeDefaultConfigurators() {
@@ -421,6 +503,137 @@ public class SystemManager {
             checkedNames.add(name);
         }
         return true;
+    }
+
+    /**
+     * Normalizes raw values based on field type and validates mandatory compilations.
+     *
+     * @param fields    The fields that compose the selected category template.
+     * @param rawValues The raw values coming from the UI.
+     *
+     * @return A normalized value map or {@code null} if validation fails.
+     */
+    private Map<String, String> normalizeAndValidateValues(List<Field> fields, Map<String, String> rawValues) {
+        Map<String, String> normalized = new LinkedHashMap<>();
+        for (Field field : fields) {
+            String fieldName = field.getName();
+            String value = rawValues.get(fieldName);
+            if (value != null) {
+                value = value.trim();
+            }
+
+            if (value == null || value.isBlank()) {
+                if (field.isMandatory()) {
+                    return null;
+                }
+                continue;
+            }
+
+            String canonical = normalizeValue(value, field.getDataType());
+            if (canonical == null) {
+                return null;
+            }
+            normalized.put(fieldName, canonical);
+        }
+        return normalized;
+    }
+
+    /**
+     * Converts a user value to its canonical storage form.
+     *
+     * @param rawValue The raw user value.
+     * @param dataType The expected field data type.
+     *
+     * @return Canonical value, or {@code null} if conversion fails.
+     */
+    private String normalizeValue(String rawValue, DataType dataType) {
+        try {
+            return switch (dataType) {
+                case STRING -> rawValue;
+                case INTEGER -> Integer.toString(Integer.parseInt(rawValue));
+                case DECIMAL -> Double.toString(Double.parseDouble(rawValue));
+                case DATE -> LocalDate.parse(rawValue, USER_DATE_FORMATTER).format(DateTimeFormatter.ISO_LOCAL_DATE);
+                case TIME -> LocalTime.parse(rawValue, USER_TIME_FORMATTER).format(USER_TIME_FORMATTER);
+                case BOOLEAN -> parseBoolean(rawValue);
+            };
+        } catch (NumberFormatException | DateTimeParseException exception) {
+            return null;
+        }
+    }
+
+    /**
+     * Checks all required domain rules for a proposal.
+     *
+     * @param values Canonical value map.
+     *
+     * @return {@code true} if all rules are respected, {@code false} otherwise.
+     */
+    private boolean checkDomainRules(Map<String, String> values) {
+        LocalDate deadline = parseIsoDate(values.get(DEADLINE_FIELD_NAME));
+        LocalDate startDate = parseIsoDate(values.get(START_DATE_FIELD_NAME));
+        LocalDate endDate = parseIsoDate(values.get(END_DATE_FIELD_NAME));
+        Integer participants = parseInteger(values.get(PARTICIPANTS_FIELD_NAME));
+        Double fee = parseDouble(values.get(FEE_FIELD_NAME));
+
+        if (deadline == null || !deadline.isAfter(LocalDate.now())) {
+            return false;
+        }
+        if (startDate == null || startDate.isBefore(deadline.plusDays(2))) {
+            return false;
+        }
+        if (endDate == null || endDate.isBefore(startDate)) {
+            return false;
+        }
+        if (participants == null || participants <= 0) {
+            return false;
+        }
+        return fee != null && fee >= 0.0f;
+    }
+
+    private LocalDate parseIsoDate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
+    }
+
+    private Integer parseInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private Double parseDouble(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.replace(',', '.');
+        try {
+            return Double.parseDouble(normalized);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private String parseBoolean(String value) {
+        String normalized = value.trim().toLowerCase();
+        if (normalized.equals("true") || normalized.equals("si") || normalized.equals("s")
+                || normalized.equals("yes") || normalized.equals("y")) {
+            return Boolean.TRUE.toString();
+        }
+        if (normalized.equals("false") || normalized.equals("no") || normalized.equals("n")) {
+            return Boolean.FALSE.toString();
+        }
+        return null;
     }
 
     /**

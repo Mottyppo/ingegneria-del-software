@@ -1,0 +1,64 @@
+{
+  "proposals": [
+    {
+      "id": 1,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Camminata Ludico Motoria",
+        "Numero di partecipanti": "100",
+        "Termine ultimo di iscrizione": "2026-12-02",
+        "Luogo": "Campo Sportivo Desenzano del Garda",
+        "Data": "2026-12-05",
+        "Ora": "15:00",
+        "Quota individuale": "0",
+        "Data conclusiva": "2026-12-05",
+        "Certificato medico": "true"
+      },
+      "currentStatus": "OPEN",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-03-25T01:27:15.671183"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-03-25T01:27:15.671314"
+        },
+        {
+          "status": "OPEN",
+          "timestamp": "2026-03-25T01:27:19.383615"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "torneo di padel",
+        "Numero di partecipanti": "20",
+        "Termine ultimo di iscrizione": "2026-12-27",
+        "Luogo": "Skypadel Desenzano del Garda",
+        "Data": "2026-12-30",
+        "Ora": "15:00",
+        "Quota individuale": "0",
+        "Data conclusiva": "2026-12-30",
+        "Certificato medico": "false"
+      },
+      "currentStatus": "OPEN",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-03-25T01:39:24.26627"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-03-25T01:39:24.266415"
+        },
+        {
+          "status": "OPEN",
+          "timestamp": "2026-03-25T01:39:27.797508"
+        }
+      ]
+    }
+  ]
+}
