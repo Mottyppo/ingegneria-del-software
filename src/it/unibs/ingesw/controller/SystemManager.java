@@ -6,6 +6,8 @@ import it.unibs.ingesw.model.Category;
 import it.unibs.ingesw.model.Configurator;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
+import it.unibs.ingesw.model.Participant;
+import it.unibs.ingesw.model.Notification;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
 import it.unibs.ingesw.model.SystemConfig;
@@ -26,11 +28,11 @@ import java.util.Map;
  *
  * <p><strong>Features:</strong></p>
  * <ul>
- *   <li>Authenticates configurators and updates their credentials.</li>
+ *   <li>Authenticates configurators and fruitori.</li>
  *   <li>Manages base, common, and category-specific fields.</li>
- *   <li>Ensures category and field names are unique in a case-insensitive way.</li>
  *   <li>Validates and creates proposals according to business rules.</li>
  *   <li>Publishes valid proposals and exposes the board grouped by category.</li>
+ *   <li>Handles proposal lifecycle transitions, subscriptions, and participation notifications.</li>
  * </ul>
  */
 public class SystemManager {
@@ -43,6 +45,10 @@ public class SystemManager {
     private static final String END_DATE_FIELD_NAME = "Data conclusiva";
     private static final String PARTICIPANTS_FIELD_NAME = "Numero di partecipanti";
     private static final String FEE_FIELD_NAME = "Quota individuale";
+    private static final String TITLE_FIELD_NAME = "Titolo";
+    private static final String PLACE_FIELD_NAME = "Luogo";
+    private static final String TIME_FIELD_NAME = "Ora";
+
     private static final DateTimeFormatter USER_DATE_FORMATTER = DateTimeFormatter
             .ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
@@ -52,6 +58,7 @@ public class SystemManager {
 
     private final IOManager ioManager;
     private final List<Configurator> configurators;
+    private final List<Participant> participants;
     private final List<Category> categories;
     private final SystemConfig config;
     private final Archive archive;
@@ -61,11 +68,14 @@ public class SystemManager {
         this.config = ioManager.readConfig();
         this.categories = ioManager.readCategories();
         this.configurators = ioManager.readConfigurators();
+        this.participants = ioManager.readParticipants();
         this.archive = ioManager.readArchive();
 
         if (this.configurators.isEmpty()) {
             initializeDefaultConfigurators();
         }
+
+        refreshProposalLifecycle();
     }
 
     /**
@@ -77,6 +87,9 @@ public class SystemManager {
      * @return The matching configurator, or {@code null} if the credentials are invalid.
      */
     public Configurator authenticateConfigurator(String username, String password) {
+        if (username == null || password == null) {
+            return null;
+        }
         for (Configurator configurator : configurators) {
             if (configurator.getUsername().equalsIgnoreCase(username)
                     && configurator.getPassword().equals(password)) {
@@ -87,23 +100,55 @@ public class SystemManager {
     }
 
     /**
-     * Checks whether the provided username is available.
+     * Authenticates a fruitore using the provided credentials.
      *
-     * @param username  The username to check.
-     * @param exclude   A configurator to ignore during the check, or {@code null}.
+     * @param username The username to verify.
+     * @param password The password to verify.
      *
-     * @return {@code true} if the username is available, {@code false} otherwise.
+     * @return The matching fruitore, or {@code null} if the credentials are invalid.
      */
-    public boolean isUsernameAvailable(String username, Configurator exclude) {
-        for (Configurator configurator : configurators) {
-            if (exclude != null && configurator == exclude) {
-                continue;
-            }
-            if (configurator.getUsername().equalsIgnoreCase(username)) {
-                return false;
+    public Participant authenticateParticipant(String username, String password) {
+        if (username == null || password == null) {
+            return null;
+        }
+        for (Participant participant : participants) {
+            if (participant.getUsername().equalsIgnoreCase(username)
+                    && participant.getPassword().equals(password)) {
+                return participant;
             }
         }
-        return true;
+        return null;
+    }
+
+    /**
+     * Registers a new fruitore account.
+     *
+     * @param name      The fruitore name.
+     * @param surname   The fruitore surname.
+     * @param username  The desired username.
+     * @param password  The desired password.
+     *
+     * @return The created fruitore, or {@code null} if registration fails.
+     */
+    public Participant signUpParticipant(String name, String surname, String username, String password) {
+        if (name == null || surname == null || username == null || password == null) {
+            return null;
+        }
+        String normalizedName = name.trim();
+        String normalizedSurname = surname.trim();
+        String normalizedUsername = username.trim();
+
+        if (normalizedName.isBlank() || normalizedSurname.isBlank() || normalizedUsername.isBlank() || password.isBlank()) {
+            return null;
+        }
+        if (!isUsernameAvailable(normalizedUsername, null, null)) {
+            return null;
+        }
+
+        Participant participant = new Participant(normalizedName, normalizedSurname, normalizedUsername, password);
+        participants.add(participant);
+        ioManager.writeParticipants(participants);
+        return participant;
     }
 
     /**
@@ -116,11 +161,12 @@ public class SystemManager {
      * @return {@code true} if the credentials were updated, {@code false} otherwise.
      */
     public boolean updateCredentials(Configurator configurator, String newUsername, String newPassword) {
-        if (newUsername == null || newUsername.isBlank()) {
+        if (configurator == null || newUsername == null || newUsername.isBlank()
+                || newPassword == null || newPassword.isBlank()) {
             return false;
         }
         String normalized = newUsername.trim();
-        if (!isUsernameAvailable(normalized, configurator)) {
+        if (!isUsernameAvailable(normalized, configurator, null)) {
             return false;
         }
         configurator.setCredentials(normalized, newPassword);
@@ -178,7 +224,7 @@ public class SystemManager {
      * @return {@code true} if the field was added, {@code false} otherwise.
      */
     public boolean addCommonField(Field field) {
-        if (!isFieldNameAvailable(field.getName(), null)) {
+        if (field == null || !isFieldNameAvailable(field.getName(), null)) {
             return false;
         }
         config.addCommonField(field);
@@ -194,7 +240,9 @@ public class SystemManager {
      * @return {@code true} if the field was removed, {@code false} otherwise.
      */
     public boolean removeCommonField(int index) {
-        if (isInvalidIndex(index, config.getCommonFields())) return false;
+        if (isInvalidIndex(index, config.getCommonFields())) {
+            return false;
+        }
         config.removeCommonField(index);
         ioManager.writeConfig(config);
         return true;
@@ -208,7 +256,9 @@ public class SystemManager {
      * @return {@code true} if the field was updated, {@code false} otherwise.
      */
     public boolean toggleMandatorinessCommonField(int index) {
-        if (isInvalidIndex(index, config.getCommonFields())) return false;
+        if (isInvalidIndex(index, config.getCommonFields())) {
+            return false;
+        }
         config.toggleMandatorinessCommonField(index);
         ioManager.writeConfig(config);
         return true;
@@ -254,7 +304,9 @@ public class SystemManager {
      * @return {@code true} if the category was removed, {@code false} otherwise.
      */
     public boolean removeCategory(int index) {
-        if (isInvalidIndex(index, categories)) return false;
+        if (isInvalidIndex(index, categories)) {
+            return false;
+        }
         categories.remove(index);
         ioManager.writeCategories(categories);
         return true;
@@ -269,7 +321,9 @@ public class SystemManager {
      * @return {@code true} if the field was added, {@code false} otherwise.
      */
     public boolean addSpecificField(int categoryIndex, Field field) {
-        if (isInvalidIndex(categoryIndex, categories)) return false;
+        if (field == null || isInvalidIndex(categoryIndex, categories)) {
+            return false;
+        }
         Category category = categories.get(categoryIndex);
         if (!isFieldNameAvailable(field.getName(), category)) {
             return false;
@@ -288,9 +342,13 @@ public class SystemManager {
      * @return {@code true} if the field was removed, {@code false} otherwise.
      */
     public boolean removeSpecificField(int categoryIndex, int fieldIndex) {
-        if (isInvalidIndex(categoryIndex, categories)) return false;
+        if (isInvalidIndex(categoryIndex, categories)) {
+            return false;
+        }
         Category category = categories.get(categoryIndex);
-        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) return false;
+        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) {
+            return false;
+        }
         category.removeSpecificField(fieldIndex);
         ioManager.writeCategories(categories);
         return true;
@@ -305,9 +363,13 @@ public class SystemManager {
      * @return {@code true} if the field was updated, {@code false} otherwise.
      */
     public boolean toggleMandatorinessSpecificField(int categoryIndex, int fieldIndex) {
-        if (isInvalidIndex(categoryIndex, categories)) return false;
+        if (isInvalidIndex(categoryIndex, categories)) {
+            return false;
+        }
         Category category = categories.get(categoryIndex);
-        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) return false;
+        if (isInvalidIndex(fieldIndex, category.getSpecificFields())) {
+            return false;
+        }
         category.toggleMandatoriness(fieldIndex);
         ioManager.writeCategories(categories);
         return true;
@@ -405,6 +467,8 @@ public class SystemManager {
      * @return {@code true} if publishing succeeds, {@code false} otherwise.
      */
     public boolean publishProposal(Proposal proposal) {
+        refreshProposalLifecycle();
+
         if (proposal == null) {
             return false;
         }
@@ -426,7 +490,28 @@ public class SystemManager {
      * @return An immutable list of proposals in state {@link ProposalStatus#VALID}.
      */
     public List<Proposal> getValidProposals() {
+        refreshProposalLifecycle();
         return archive.getByStatus(ProposalStatus.VALID);
+    }
+
+    /**
+     * Returns all currently open proposals.
+     *
+     * @return An immutable list of proposals in state {@link ProposalStatus#OPEN}.
+     */
+    public List<Proposal> getOpenProposals() {
+        refreshProposalLifecycle();
+        return archive.getByStatus(ProposalStatus.OPEN);
+    }
+
+    /**
+     * Returns the full proposal archive.
+     *
+     * @return An immutable list of archived proposals.
+     */
+    public List<Proposal> getArchivedProposals() {
+        refreshProposalLifecycle();
+        return archive.getProposals();
     }
 
     /**
@@ -435,7 +520,128 @@ public class SystemManager {
      * @return Category to open proposal mapping.
      */
     public Map<String, List<Proposal>> getBoardByCategory() {
+        refreshProposalLifecycle();
         return archive.getOpenByCategory();
+    }
+
+    /**
+     * Subscribes a fruitore to an open proposal while respecting V3 constraints.
+     *
+     * @param participant   The subscribing fruitore.
+     * @param proposalId    The proposal id.
+     *
+     * @return {@code true} if subscription succeeds, {@code false} otherwise.
+     */
+    public boolean subscribeParticipantToProposal(Participant participant, int proposalId) {
+        refreshProposalLifecycle();
+
+        if (participant == null) {
+            return false;
+        }
+        Proposal proposal = findArchivedProposalById(proposalId);
+        if (proposal == null || proposal.getCurrentStatus() != ProposalStatus.OPEN) {
+            return false;
+        }
+
+        LocalDate deadline = parseFlexibleDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
+        if (deadline == null || LocalDate.now().isAfter(deadline)) {
+            return false;
+        }
+
+        Integer participants = parseInteger(proposal.getFieldValues().get(PARTICIPANTS_FIELD_NAME));
+        if (participants == null || participants <= 0) {
+            return false;
+        }
+
+        boolean subscribed = proposal.addSubscriber(participant.getUsername(), participants);
+        if (!subscribed) {
+            return false;
+        }
+
+        archive.saveProposal(proposal);
+        ioManager.writeArchive(archive);
+        return true;
+    }
+
+    /**
+     * Returns personal-space notifications of the given fruitore.
+     *
+     * @param participant The fruitore.
+     * @return An immutable list of notifications.
+     */
+    public List<Notification> getParticipantNotifications(Participant participant) {
+        if (participant == null) {
+            return List.of();
+        }
+        return participant.getPersonalSpace().getNotifications();
+    }
+
+    /**
+     * Removes one notification from the fruitore personal space.
+     *
+     * @param participant   The fruitore owner of the space.
+     * @param index         Notification index to remove.
+     * @return {@code true} if removed, {@code false} otherwise.
+     */
+    public boolean removeParticipantNotification(Participant participant, int index) {
+        if (participant == null) {
+            return false;
+        }
+        boolean removed = participant.getPersonalSpace().removeNotification(index);
+        if (removed) {
+            ioManager.writeParticipants(participants);
+        }
+        return removed;
+    }
+
+    /**
+     * Applies automatic lifecycle transitions and generates notification side effects.
+     */
+    public void refreshProposalLifecycle() {
+        boolean archiveChanged = false;
+        boolean participantsChanged = false;
+
+        for (Proposal proposal : archive.getProposals()) {
+            if (proposal == null) {
+                continue;
+            }
+
+            if (proposal.getCurrentStatus() == ProposalStatus.OPEN && isDeadlineExpired(proposal)) {
+                Integer expectedParticipants = parseInteger(proposal.getFieldValues().get(PARTICIPANTS_FIELD_NAME));
+                int subscribedCount = proposal.getSubscribers().size();
+
+                boolean confirmed = expectedParticipants != null
+                        && expectedParticipants > 0
+                        && subscribedCount == expectedParticipants
+                        && proposal.markAsConfirmed();
+
+                if (!confirmed) {
+                    proposal.markAsCanceled();
+                }
+
+                archive.saveProposal(proposal);
+                archiveChanged = true;
+
+                boolean notified = confirmed
+                        ? notifySubscribersProposalConfirmed(proposal)
+                        : notifySubscribersProposalCanceled(proposal);
+                participantsChanged = participantsChanged || notified;
+            }
+
+            if (proposal.getCurrentStatus() == ProposalStatus.CONFIRMED && isAfterEndDate(proposal)) {
+                if (proposal.markAsClose()) {
+                    archive.saveProposal(proposal);
+                    archiveChanged = true;
+                }
+            }
+        }
+
+        if (archiveChanged) {
+            ioManager.writeArchive(archive);
+        }
+        if (participantsChanged) {
+            ioManager.writeParticipants(participants);
+        }
     }
 
     /**
@@ -474,6 +680,31 @@ public class SystemManager {
         }
         if (category != null && fieldNameExists(category.getSpecificFields(), normalized)) {
             return false;
+        }
+        return true;
+    }
+
+    private boolean isUsernameAvailable(String username, Configurator excludeConfigurator, Participant excludeParticipant) {
+        if (username == null || username.trim().isBlank()) {
+            return false;
+        }
+        String normalized = username.trim();
+
+        for (Configurator configurator : configurators) {
+            if (excludeConfigurator != null && configurator == excludeConfigurator) {
+                continue;
+            }
+            if (configurator.getUsername().equalsIgnoreCase(normalized)) {
+                return false;
+            }
+        }
+        for (Participant participant : participants) {
+            if (excludeParticipant != null && participant == excludeParticipant) {
+                continue;
+            }
+            if (participant.getUsername().equalsIgnoreCase(normalized)) {
+                return false;
+            }
         }
         return true;
     }
@@ -589,9 +820,9 @@ public class SystemManager {
      * @return {@code true} if all rules are respected, {@code false} otherwise.
      */
     private boolean checkDomainRules(Map<String, String> values) {
-        LocalDate deadline = parseIsoDate(values.get(DEADLINE_FIELD_NAME));
-        LocalDate startDate = parseIsoDate(values.get(START_DATE_FIELD_NAME));
-        LocalDate endDate = parseIsoDate(values.get(END_DATE_FIELD_NAME));
+        LocalDate deadline = parseFlexibleDate(values.get(DEADLINE_FIELD_NAME));
+        LocalDate startDate = parseFlexibleDate(values.get(START_DATE_FIELD_NAME));
+        LocalDate endDate = parseFlexibleDate(values.get(END_DATE_FIELD_NAME));
         Integer participants = parseInteger(values.get(PARTICIPANTS_FIELD_NAME));
         Double fee = parseDouble(values.get(FEE_FIELD_NAME));
 
@@ -616,6 +847,21 @@ public class SystemManager {
         }
         try {
             return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException exception) {
+            return null;
+        }
+    }
+
+    private LocalDate parseFlexibleDate(String value) {
+        LocalDate iso = parseIsoDate(value);
+        if (iso != null) {
+            return iso;
+        }
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(value, USER_DATE_FORMATTER);
         } catch (DateTimeParseException exception) {
             return null;
         }
@@ -655,12 +901,78 @@ public class SystemManager {
     }
 
     private Proposal findArchivedProposalById(int id) {
-        for (Proposal proposal : archive.getProposals()) {
-            if (proposal.getId() == id) {
-                return proposal;
+        return archive.findById(id);
+    }
+
+    private Participant findParticipantByUsername(String username) {
+        if (username == null) {
+            return null;
+        }
+        for (Participant participant : participants) {
+            if (participant.getUsername().equalsIgnoreCase(username.trim())) {
+                return participant;
             }
         }
         return null;
+    }
+
+    private boolean isDeadlineExpired(Proposal proposal) {
+        LocalDate deadline = parseFlexibleDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
+        return deadline != null && LocalDate.now().isAfter(deadline);
+    }
+
+    private boolean isAfterEndDate(Proposal proposal) {
+        LocalDate endDate = parseFlexibleDate(proposal.getFieldValues().get(END_DATE_FIELD_NAME));
+        return endDate != null && LocalDate.now().isAfter(endDate);
+    }
+
+    private boolean notifySubscribersProposalConfirmed(Proposal proposal) {
+        String message = buildProposalConfirmedNotification(proposal);
+        boolean changed = false;
+        for (String username : proposal.getSubscribers()) {
+            Participant participant = findParticipantByUsername(username);
+            if (participant != null) {
+                changed = participant.getPersonalSpace().addNotification(message) || changed;
+            }
+        }
+        return changed;
+    }
+
+    private boolean notifySubscribersProposalCanceled(Proposal proposal) {
+        String message = buildProposalCanceledNotification(proposal);
+        boolean changed = false;
+        for (String username : proposal.getSubscribers()) {
+            Participant participant = findParticipantByUsername(username);
+            if (participant != null) {
+                changed = participant.getPersonalSpace().addNotification(message) || changed;
+            }
+        }
+        return changed;
+    }
+
+    private String buildProposalConfirmedNotification(Proposal proposal) {
+        Map<String, String> values = proposal.getFieldValues();
+        String title = values.getOrDefault(TITLE_FIELD_NAME, "(senza titolo)");
+        String date = values.getOrDefault(START_DATE_FIELD_NAME, "-");
+        String time = values.getOrDefault(TIME_FIELD_NAME, "-");
+        String place = values.getOrDefault(PLACE_FIELD_NAME, "-");
+        String fee = values.getOrDefault(FEE_FIELD_NAME, "-");
+
+        return "Proposta #" + proposal.getId()
+                + " confermata: \"" + title + "\". "
+                + "Promemoria evento -> Data: " + date
+                + ", Ora: " + time
+                + ", Luogo: " + place
+                + ", Quota individuale: " + fee + ".";
+    }
+
+    private String buildProposalCanceledNotification(Proposal proposal) {
+        Map<String, String> values = proposal.getFieldValues();
+        String title = values.getOrDefault(TITLE_FIELD_NAME, "(senza titolo)");
+
+        return "Proposta #" + proposal.getId()
+                + " annullata: \"" + title + "\". "
+                + "L'iniziativa non ha raggiunto il numero richiesto di partecipanti entro la chiusura iscrizioni.";
     }
 
     private String parseBoolean(String value) {

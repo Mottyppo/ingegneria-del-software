@@ -14,6 +14,7 @@ import java.util.Map;
  * <ul>
  *   <li>Stores proposal id, category snapshot, and compiled field values.</li>
  *   <li>Tracks current status and complete status history.</li>
+ *   <li>Stores subscribed fruitori while the proposal is open.</li>
  *   <li>Stores publication date when the proposal reaches the open state.</li>
  * </ul>
  */
@@ -24,6 +25,7 @@ public class Proposal {
     private static final String STATUS_LABEL =              ", stato=";
     private static final String FIELD_VALUES_LABEL =        ", campi=";
     private static final String FIELD_TYPES_LABEL =         ", tipi campi=";
+    private static final String SUBSCRIBERS_LABEL =         ", iscritti=";
     private static final String TO_STRING_SUFFIX =          "}";
 
     private final int id;
@@ -32,6 +34,7 @@ public class Proposal {
     private Map<String, DataType> fieldTypes;
     private ProposalStatus currentStatus;
     private List<StateLog> statusHistory;
+    private List<String> subscribers;
 
     public Proposal(int id, String categoryName, Map<String, String> fieldValues) {
         this(id, categoryName, fieldValues, null);
@@ -49,6 +52,7 @@ public class Proposal {
         this.fieldTypes = fieldTypes == null ? new LinkedHashMap<>() : new LinkedHashMap<>(fieldTypes);
         this.currentStatus = ProposalStatus.CREATED;
         this.statusHistory = new ArrayList<>();
+        this.subscribers = new ArrayList<>();
         appendState(ProposalStatus.CREATED);
     }
 
@@ -77,6 +81,32 @@ public class Proposal {
     public List<StateLog> getStatusHistory() {
         ensureHistory();
         return Collections.unmodifiableList(statusHistory);
+    }
+
+    public List<String> getSubscribers() {
+        ensureSubscribers();
+        return Collections.unmodifiableList(subscribers);
+    }
+
+    public boolean addSubscriber(String username, int maxParticipants) {
+        ensureSubscribers();
+        String normalized = username == null ? null : username.trim();
+        if (normalized == null || normalized.isBlank()) {
+            return false;
+        }
+        if (currentStatus != ProposalStatus.OPEN) {
+            return false;
+        }
+        if (maxParticipants <= 0 || subscribers.size() >= maxParticipants) {
+            return false;
+        }
+        for (String subscribed : subscribers) {
+            if (subscribed != null && subscribed.equalsIgnoreCase(normalized)) {
+                return false;
+            }
+        }
+        subscribers.add(normalized);
+        return true;
     }
 
     /**
@@ -127,6 +157,45 @@ public class Proposal {
         return true;
     }
 
+    /**
+     * Marks the proposal as confirmed.
+     *
+     * @return {@code true} if transition is accepted, {@code false} otherwise.
+     */
+    public boolean markAsConfirmed() {
+        if (currentStatus != ProposalStatus.OPEN) {
+            return false;
+        }
+        appendState(ProposalStatus.CONFIRMED);
+        return true;
+    }
+
+    /**
+     * Marks the proposal as canceled.
+     *
+     * @return {@code true} if transition is accepted, {@code false} otherwise.
+     */
+    public boolean markAsCanceled() {
+        if (currentStatus != ProposalStatus.OPEN) {
+            return false;
+        }
+        appendState(ProposalStatus.CANCELED);
+        return true;
+    }
+
+    /**
+     * Marks the proposal as closed.
+     *
+     * @return {@code true} if transition is accepted, {@code false} otherwise.
+     */
+    public boolean markAsClose() {
+        if (currentStatus != ProposalStatus.CONFIRMED) {
+            return false;
+        }
+        appendState(ProposalStatus.CLOSE);
+        return true;
+    }
+
     private void appendState(ProposalStatus nextStatus) {
         ensureHistory();
         this.currentStatus = nextStatus;
@@ -151,6 +220,12 @@ public class Proposal {
         }
     }
 
+    private void ensureSubscribers() {
+        if (subscribers == null) {
+            subscribers = new ArrayList<>();
+        }
+    }
+
     @Override
     public String toString() {
         return TO_STRING_PREFIX +
@@ -159,6 +234,7 @@ public class Proposal {
                 STATUS_LABEL + currentStatus +
                 FIELD_VALUES_LABEL + fieldValues +
                 FIELD_TYPES_LABEL + fieldTypes +
+                SUBSCRIBERS_LABEL + subscribers +
                 TO_STRING_SUFFIX;
     }
 }

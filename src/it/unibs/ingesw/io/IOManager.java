@@ -9,6 +9,7 @@ import it.unibs.ingesw.console.format.AnsiWeights;
 import it.unibs.ingesw.console.format.FormatStrings;
 import it.unibs.ingesw.model.Category;
 import it.unibs.ingesw.model.Configurator;
+import it.unibs.ingesw.model.Participant;
 import it.unibs.ingesw.model.SystemConfig;
 
 import java.io.IOException;
@@ -29,8 +30,8 @@ import java.util.List;
  * <p><strong>Features:</strong></p>
  * <ul>
  *   <li>Reads and writes the system configuration.</li>
- *   <li>Reads and writes categories and configurator credentials.</li>
- *   <li>Reads and writes the full proposal archive (created, valid, and open proposals).</li>
+ *   <li>Reads and writes categories, configurator and fruitori credentials.</li>
+ *   <li>Reads and writes the full proposal archive.</li>
  *   <li>Creates the data folder automatically and prints formatted I/O errors.</li>
  * </ul>
  */
@@ -39,7 +40,8 @@ public class IOManager {
     private static final String DATA_DIR_PROPERTY = "ingesw.data.dir";
     private static final String CONFIG_FILE = "config.json";
     private static final String CATEGORIES_FILE = "categories.json";
-    private static final String USERS_FILE = "users.json";
+    private static final String CONFIGURATORS_FILE = "configurators.json";
+    private static final String PARTICIPANTS_FILE = "participants.json";
     private static final String PROPOSALS_FILE = "proposals.json";
 
     private static final String ERROR_DIR_CREATION_TEMPLATE = "Impossibile creare la cartella dati: %s";
@@ -114,7 +116,7 @@ public class IOManager {
     public List<Configurator> readConfigurators() {
         Type listType = new TypeToken<List<Configurator>>() {
         }.getType();
-        List<Configurator> configurators = readJson(resolve(USERS_FILE), listType, new ArrayList<>());
+        List<Configurator> configurators = readJson(resolve(CONFIGURATORS_FILE), listType, new ArrayList<>());
         return configurators == null ? new ArrayList<>() : configurators;
     }
 
@@ -124,7 +126,28 @@ public class IOManager {
      * @param configurators The configurators to store.
      */
     public void writeConfigurators(List<Configurator> configurators) {
-        writeJson(resolve(USERS_FILE), configurators);
+        writeJson(resolve(CONFIGURATORS_FILE), configurators);
+    }
+
+    /**
+     * Loads all fruitori credentials and personal spaces from disk.
+     *
+     * @return The list of fruitori, or an empty list when no data is available.
+     */
+    public List<Participant> readParticipants() {
+        Type listType = new TypeToken<List<Participant>>() {
+        }.getType();
+        List<Participant> participants = readJson(resolve(PARTICIPANTS_FILE), listType, new ArrayList<>());
+        return participants == null ? new ArrayList<>() : participants;
+    }
+
+    /**
+     * Persists fruitori credentials and personal spaces to disk.
+     *
+     * @param participants The fruitori to store.
+     */
+    public void writeParticipants(List<Participant> participants) {
+        writeJson(resolve(PARTICIPANTS_FILE), participants);
     }
 
     /**

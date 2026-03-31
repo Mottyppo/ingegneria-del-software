@@ -32,6 +32,7 @@ public class ProposalTest {
         assertEquals(1, proposal.getStatusHistory().size());
         assertEquals(ProposalStatus.CREATED, proposal.getStatusHistory().getFirst().getStatus());
         assertNull(proposal.getPublicationDate());
+        assertTrue(proposal.getSubscribers().isEmpty());
     }
 
     @Test
@@ -57,5 +58,46 @@ public class ProposalTest {
         assertFalse(proposal.markAsOpen());
         assertTrue(proposal.markAsValid());
         assertFalse(proposal.markAsValid());
+    }
+
+    @Test
+    void manageSubscribersOnlyWhenOpenAndWithoutDuplicates() {
+        Proposal proposal = new Proposal(4, "Sport", Map.of("Titolo", "Partita"));
+
+        assertFalse(proposal.addSubscriber("mario", 2));
+        assertTrue(proposal.markAsValid());
+        assertTrue(proposal.markAsOpen());
+
+        assertTrue(proposal.addSubscriber("mario", 2));
+        assertFalse(proposal.addSubscriber("mario", 2));
+        assertFalse(proposal.addSubscriber("MARIO", 2));
+        assertTrue(proposal.addSubscriber("luca", 2));
+        assertFalse(proposal.addSubscriber("anna", 2));
+
+        assertEquals(2, proposal.getSubscribers().size());
+    }
+
+    @Test
+    void transitionFromOpenToConfirmedToClose() {
+        Proposal proposal = new Proposal(5, "Gite", Map.of("Titolo", "Montisola"));
+        assertTrue(proposal.markAsValid());
+        assertTrue(proposal.markAsOpen());
+        assertTrue(proposal.markAsConfirmed());
+        assertTrue(proposal.markAsClose());
+
+        assertEquals(ProposalStatus.CLOSE, proposal.getCurrentStatus());
+        assertEquals(5, proposal.getStatusHistory().size());
+        assertEquals(ProposalStatus.CLOSE, proposal.getStatusHistory().getLast().getStatus());
+    }
+
+    @Test
+    void transitionFromOpenToCanceled() {
+        Proposal proposal = new Proposal(6, "Cinema", Map.of("Titolo", "Film"));
+        assertTrue(proposal.markAsValid());
+        assertTrue(proposal.markAsOpen());
+        assertTrue(proposal.markAsCanceled());
+        assertFalse(proposal.markAsClose());
+
+        assertEquals(ProposalStatus.CANCELED, proposal.getCurrentStatus());
     }
 }

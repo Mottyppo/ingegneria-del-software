@@ -7,6 +7,7 @@ import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.Proposal;
+import it.unibs.ingesw.model.StateLog;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -49,7 +50,7 @@ public class UserInteraction {
         Mottinelli Matteo - 745550
         Nizzotti Mattia - 746348
         """;
-    private static final String APP_TITLE = "=== Backend Configuratore ===";
+    private static final String APP_TITLE = "=== Sistema Gestione Iniziative Culturali ===";
     private static final String FIRST_CONFIGURATION_NOTICE = "Prima configurazione: impostazione campi base.";
     private static final String SHUTDOWN_MESSAGE = "=== Chiusura programma ===";
 
@@ -98,6 +99,7 @@ public class UserInteraction {
     private static final String PROPOSAL_PUBLISH_SUCCESS_MESSAGE = "Proposta pubblicata in bacheca.";
     private static final String PROPOSAL_PUBLISH_FAILURE_MESSAGE = "Impossibile pubblicare la proposta.";
     private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
+    private static final String NO_ARCHIVED_PROPOSALS_MESSAGE = "Archivio proposte vuoto.";
     private static final String DATE_FORMAT_ERROR_MESSAGE = "Formato data non valido. Usa GG/MM/AAAA.";
     private static final String TIME_FORMAT_ERROR_MESSAGE = "Formato ora non valido. Usa HH:MM.";
     private static final String DECIMAL_FORMAT_ERROR_MESSAGE = "Formato decimale non valido. Usa es. 12,50 oppure 12.50.";
@@ -114,6 +116,7 @@ public class UserInteraction {
     private static final String MAIN_MENU_MANAGE_CATEGORIES = "Gestisci categorie";
     private static final String MAIN_MENU_MANAGE_PROPOSALS = "Gestisci proposte";
     private static final String MAIN_MENU_SHOW_CATEGORIES = "Visualizza categorie e campi";
+    private static final String MAIN_MENU_SHOW_ARCHIVE = "Visualizza archivio proposte";
 
     private static final String COMMON_FIELDS_MENU_TITLE = "Campi Comuni";
     private static final String COMMON_FIELDS_ADD = "Aggiungi campo comune";
@@ -309,6 +312,7 @@ public class UserInteraction {
         entries.add(MAIN_MENU_MANAGE_CATEGORIES);
         entries.add(MAIN_MENU_MANAGE_PROPOSALS);
         entries.add(MAIN_MENU_SHOW_CATEGORIES);
+        entries.add(MAIN_MENU_SHOW_ARCHIVE);
         return new Menu(MAIN_MENU_TITLE, entries, true, Alignment.CENTER, true).choose();
     }
 
@@ -627,6 +631,40 @@ public class UserInteraction {
 
     public String proposalPublishFailureMessage() {
         return PROPOSAL_PUBLISH_FAILURE_MESSAGE;
+    }
+
+    public void showArchive(List<Proposal> proposals) {
+        printInfo("== Archivio Proposte ==");
+        if (proposals == null || proposals.isEmpty()) {
+            printCancelled(NO_ARCHIVED_PROPOSALS_MESSAGE);
+            return;
+        }
+
+        for (Proposal proposal : proposals) {
+            if (proposal == null) {
+                continue;
+            }
+            System.out.println("- Proposta #" + proposal.getId()
+                    + " | Categoria: " + proposal.getCategoryName()
+                    + " | Stato corrente: " + proposal.getCurrentStatus());
+            System.out.println("  Iscritti: " + proposal.getSubscribers());
+            System.out.println("  Campi:");
+            for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
+                String formattedValue = FormatValues.formatField(
+                        proposal,
+                        valueEntry.getKey(),
+                        valueEntry.getValue()
+                );
+                System.out.println("  - " + valueEntry.getKey() + ": " + formattedValue);
+            }
+
+            System.out.println("  Storico stati:");
+            for (StateLog stateLog : proposal.getStatusHistory()) {
+                String when = FormatValues.formatDateTime(stateLog.getTimestamp());
+                System.out.println("  - " + stateLog.getStatus() + " (" + when + ")");
+            }
+            System.out.println();
+        }
     }
 
     private void printInfo(String message) {

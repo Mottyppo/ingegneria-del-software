@@ -72,6 +72,22 @@ public class Archive {
     }
 
     /**
+     * Finds a proposal by id.
+     *
+     * @param id The proposal id.
+     * @return The matching proposal, or {@code null} if not found.
+     */
+    public Proposal findById(int id) {
+        ensureProposals();
+        for (Proposal proposal : proposals) {
+            if (proposal != null && proposal.getId() == id) {
+                return proposal;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Returns all proposals currently in the requested status.
      *
      * @param status The status to filter by.
