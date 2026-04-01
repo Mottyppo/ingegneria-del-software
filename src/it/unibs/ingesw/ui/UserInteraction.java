@@ -36,6 +36,12 @@ public class UserInteraction {
     private static final String NO_ELEMENT_AVAILABLE_MESSAGE = "Nessun elemento disponibile.";
     private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
     private static final String CATEGORY_TITLE_TEMPLATE = "Categoria: %s";
+    private static final String PROPOSAL_TITLE_FIELD = "Titolo";
+    private static final String UNTITLED_PROPOSAL = "(senza titolo)";
+    private static final String PROPOSAL_SELECTION_TEMPLATE = "#%d | %s | %s";
+    private static final String BOARD_PROPOSAL_TEMPLATE =
+            "- Proposta #%d | Stato: %s | Pubblicata: %s | Iscritti: %d";
+    private static final String FIELD_ENTRY_TEMPLATE = "  - %s: %s";
     private static final String NEW_LINE = "\n";
 
     public void clearConsole() {
@@ -71,11 +77,15 @@ public class UserInteraction {
     }
 
     protected String summarizeProposalForSelection(Proposal proposal) {
-        String title = proposal.getFieldValues().getOrDefault("Titolo", "(senza titolo)");
-        return "#" + proposal.getId() + " | " + proposal.getCategoryName() + " | " + title;
+        String title = proposal.getFieldValues().getOrDefault(PROPOSAL_TITLE_FIELD, UNTITLED_PROPOSAL);
+        return PROPOSAL_SELECTION_TEMPLATE.formatted(
+                proposal.getId(),
+                proposal.getCategoryName(),
+                title
+        );
     }
 
-    protected void showBoardByCategory(Map<String, List<Proposal>> board) {
+    public void showBoard(Map<String, List<Proposal>> board) {
         if (board == null || board.isEmpty()) {
             printCancelled(NO_OPEN_PROPOSALS_MESSAGE);
             return;
@@ -85,28 +95,30 @@ public class UserInteraction {
             printInfo(CATEGORY_TITLE_TEMPLATE.formatted(entry.getKey()));
             for (Proposal proposal : entry.getValue()) {
                 String publication = FormatValues.formatDateTime(proposal.getPublicationDate());
-                System.out.println("- Proposta #" + proposal.getId()
-                        + " | Stato: " + proposal.getCurrentStatus()
-                        + " | Pubblicata: " + publication
-                        + " | Iscritti: " + proposal.getSubscribers().size());
+                System.out.printf(
+                        (BOARD_PROPOSAL_TEMPLATE) + "%n", proposal.getId(),
+                        proposal.getCurrentStatus(),
+                        publication,
+                        proposal.getSubscribers().size()
+                );
                 for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
                     String formattedValue = FormatValues.formatField(
                             proposal,
                             valueEntry.getKey(),
                             valueEntry.getValue()
                     );
-                    System.out.println("  - " + valueEntry.getKey() + ": " + formattedValue);
+                    System.out.printf((FIELD_ENTRY_TEMPLATE) + "%n", valueEntry.getKey(), formattedValue);
                 }
             }
             System.out.println();
         }
     }
 
-    protected <T> int chooseIndex(List<T> items, String title, Function<T, String> nameExtractor) {
+    public <T> int chooseIndex(List<T> items, String title, Function<T, String> nameExtractor) {
         return chooseIndex(items, title, nameExtractor, true);
     }
 
-    protected <T> int chooseIndex(
+    public <T> int chooseIndex(
             List<T> items,
             String title,
             Function<T, String> nameExtractor,

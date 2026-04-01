@@ -11,7 +11,7 @@ public class ProposalStatusTest {
     void readAllSupportedProposalStatuses() {
         assertEquals(7, ProposalStatus.values().length);
         assertEquals("Creata", ProposalStatus.CREATED.toString());
-        assertEquals("Valida", ProposalStatus.VALID.toString());
+        assertEquals("Validata", ProposalStatus.VALID.toString());
         assertEquals("Aperta", ProposalStatus.OPEN.toString());
         assertEquals("Confermata", ProposalStatus.CONFIRMED.toString());
         assertEquals("Chiusa", ProposalStatus.CLOSE.toString());

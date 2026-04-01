@@ -14,7 +14,7 @@ package it.unibs.ingesw.model;
  */
 public enum ProposalStatus {
     CREATED("Creata"),
-    VALID("Valida"),
+    VALID("Validata"),
     OPEN("Aperta"),
     CONFIRMED("Confermata"),
     CLOSE("Chiusa"),

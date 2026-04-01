@@ -1,13 +1,19 @@
 package it.unibs.ingesw.test;
 
-import it.unibs.ingesw.controller.SystemManager;
-import it.unibs.ingesw.io.IOManager;
+import it.unibs.ingesw.application.ApplicationContext;
 import it.unibs.ingesw.model.Archive;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
+import it.unibs.ingesw.persistence.JsonArchiveRepository;
+import it.unibs.ingesw.persistence.JsonCategoryRepository;
+import it.unibs.ingesw.persistence.JsonConfigRepository;
+import it.unibs.ingesw.persistence.JsonConfiguratorRepository;
+import it.unibs.ingesw.persistence.JsonParticipantRepository;
+import it.unibs.ingesw.service.ConfigurationService;
+import it.unibs.ingesw.service.ProposalService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class SystemManagerProposalFlowTest {
+/**
+ * Integration tests for proposal creation and publication flows.
+ */
+public class ProposalServiceFlowTest {
 
     @TempDir
     Path tempDir;
@@ -38,45 +47,55 @@ public class SystemManagerProposalFlowTest {
 
     @Test
     void createProposalSavesCreatedAndThenValid() {
-        SystemManager manager = prepareManagerWithSportCategory();
+        ApplicationContext context = prepareContextWithSportCategory();
+        ProposalService proposalService = context.getProposalService();
 
-        Proposal proposal = manager.createProposal(0, validRawValues());
+        Proposal proposal = proposalService.createProposal(0, validRawValues());
         assertNotNull(proposal);
         assertEquals(ProposalStatus.VALID, proposal.getCurrentStatus());
 
-        Archive archive = new IOManager().readArchive();
+        Archive archive = new JsonArchiveRepository().read();
         assertEquals(1, archive.getProposals().size());
         assertEquals(ProposalStatus.VALID, archive.getProposals().getFirst().getCurrentStatus());
     }
 
     @Test
     void publishSelectivelyOnlyChosenValidProposal() {
-        SystemManager manager = prepareManagerWithSportCategory();
+        ApplicationContext context = prepareContextWithSportCategory();
+        ProposalService proposalService = context.getProposalService();
 
-        Proposal createdOnly = manager.createProposal(0, invalidRawValues());
-        Proposal valid = manager.createProposal(0, validRawValues());
+        Proposal createdOnly = proposalService.createProposal(0, invalidRawValues());
+        Proposal valid = proposalService.createProposal(0, validRawValues());
 
         assertNotNull(createdOnly);
         assertNotNull(valid);
         assertEquals(ProposalStatus.CREATED, createdOnly.getCurrentStatus());
         assertEquals(ProposalStatus.VALID, valid.getCurrentStatus());
 
-        List<Proposal> validProposals = manager.getValidProposals();
+        List<Proposal> validProposals = proposalService.getValidProposals();
         assertEquals(1, validProposals.size());
         assertEquals(valid.getId(), validProposals.getFirst().getId());
 
-        assertTrue(manager.publishProposal(validProposals.getFirst()));
-        assertEquals(0, manager.getValidProposals().size());
+        assertTrue(proposalService.publishProposal(validProposals.getFirst()));
+        assertEquals(0, proposalService.getValidProposals().size());
 
-        Archive archive = new IOManager().readArchive();
+        Archive archive = new JsonArchiveRepository().read();
         assertEquals(2, archive.getProposals().size());
         assertEquals(1, archive.getByStatus(ProposalStatus.CREATED).size());
         assertEquals(1, archive.getByStatus(ProposalStatus.OPEN).size());
     }
 
-    private SystemManager prepareManagerWithSportCategory() {
-        SystemManager manager = new SystemManager();
-        manager.setBaseFields(List.of(
+    private ApplicationContext prepareContextWithSportCategory() {
+        ApplicationContext context = new ApplicationContext(
+                new JsonConfigRepository(),
+                new JsonCategoryRepository(),
+                new JsonConfiguratorRepository(),
+                new JsonParticipantRepository(),
+                new JsonArchiveRepository()
+        );
+        ConfigurationService configurationService = context.getConfigurationService();
+
+        configurationService.setBaseFields(List.of(
                 new Field("Titolo", "", true, FieldType.BASE, DataType.STRING),
                 new Field("Numero di partecipanti", "", true, FieldType.BASE, DataType.INTEGER),
                 new Field("Termine ultimo di iscrizione", "", true, FieldType.BASE, DataType.DATE),
@@ -86,10 +105,10 @@ public class SystemManagerProposalFlowTest {
                 new Field("Quota individuale", "", true, FieldType.BASE, DataType.DECIMAL),
                 new Field("Data conclusiva", "", true, FieldType.BASE, DataType.DATE)
         ));
-        manager.addCategory("Sport", List.of(
+        configurationService.addCategory("Sport", List.of(
                 new Field("Certificato medico", "", true, FieldType.SPECIFIC, DataType.BOOLEAN)
         ));
-        return manager;
+        return context;
     }
 
     private Map<String, String> validRawValues() {

@@ -88,6 +88,13 @@ public class Proposal {
         return Collections.unmodifiableList(subscribers);
     }
 
+    /**
+     * Attempts to add a new subscriber to this proposal.
+     *
+     * @param username        The username of the person attempting to subscribe.
+     * @param maxParticipants The maximum number of participants allowed for this specific proposal.
+     * @return {@code true} if the subscriber was successfully added; {@code false} if any of the validation conditions fail.
+     */
     public boolean addSubscriber(String username, int maxParticipants) {
         ensureSubscribers();
         String normalized = username == null ? null : username.trim();

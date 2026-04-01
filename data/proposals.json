@@ -39,7 +39,8 @@
           "status": "OPEN",
           "timestamp": "2026-03-25T01:27:19.383615"
         }
-      ]
+      ],
+      "subscribers": []
     },
     {
       "id": 2,
@@ -47,7 +48,7 @@
       "fieldValues": {
         "Titolo": "torneo di padel",
         "Numero di partecipanti": "20",
-        "Termine ultimo di iscrizione": "2026-12-27",
+        "Termine ultimo di iscrizione": "2026-04-01",
         "Luogo": "Skypadel Desenzano del Garda",
         "Data": "2026-12-30",
         "Ora": "15:00",
@@ -66,7 +67,7 @@
         "Quota individuale": "DECIMAL",
         "Certificato medico": "BOOLEAN"
       },
-      "currentStatus": "OPEN",
+      "currentStatus": "CANCELED",
       "statusHistory": [
         {
           "status": "CREATED",
@@ -79,7 +80,14 @@
         {
           "status": "OPEN",
           "timestamp": "2026-03-25T01:39:27.797508"
+        },
+        {
+          "status": "CANCELED",
+          "timestamp": "2026-04-02T01:06:44.367049"
         }
+      ],
+      "subscribers": [
+        "mottyppo"
       ]
     },
     {
@@ -121,7 +129,8 @@
           "status": "OPEN",
           "timestamp": "2026-03-27T18:17:50.992588"
         }
-      ]
+      ],
+      "subscribers": []
     },
     {
       "id": 4,

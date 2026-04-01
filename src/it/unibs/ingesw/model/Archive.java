@@ -20,6 +20,7 @@ public class Archive {
     private static final String TO_STRING_PREFIX =  "Archivio{";
     private static final String PROPOSALS_LABEL =   "proposte=";
     private static final String TO_STRING_SUFFIX =  "}";
+    private static final String UNTITLED_CATEGORY = "Senza categoria";
 
     private List<Proposal> proposals;
 
@@ -117,7 +118,7 @@ public class Archive {
         for (Proposal proposal : getByStatus(ProposalStatus.OPEN)) {
             String categoryName = proposal.getCategoryName();
             if (categoryName == null || categoryName.isBlank()) {
-                categoryName = "Senza categoria";
+                categoryName = UNTITLED_CATEGORY;
             }
             grouped.computeIfAbsent(categoryName, _ -> new ArrayList<>()).add(proposal);
         }

@@ -27,8 +27,8 @@ public class ParticipantInteraction extends UserInteraction {
     private static final String MAIN_MENU_SUBSCRIBE = "Aderisci a proposta aperta";
     private static final String MAIN_MENU_OPEN_SPACE = "Apri spazio personale";
 
-    private static final String LOGIN_USERNAME_PROMPT = "Username fruitore: ";
-    private static final String LOGIN_PASSWORD_PROMPT = "Password fruitore: ";
+    private static final String LOGIN_USERNAME_PROMPT = "Username: ";
+    private static final String LOGIN_PASSWORD_PROMPT = "Password: ";
     private static final String SIGNUP_NAME_PROMPT = "Nome: ";
     private static final String SIGNUP_SURNAME_PROMPT = "Cognome: ";
     private static final String SIGNUP_USERNAME_PROMPT = "Scegli username: ";
@@ -38,7 +38,7 @@ public class ParticipantInteraction extends UserInteraction {
     private static final String SIGNUP_SUCCESS_MESSAGE = "Sign-up completato con successo.";
     private static final String SIGNUP_FAILURE_MESSAGE = "Sign-up non riuscito. Username gia' in uso o dati non validi.";
     private static final String SUBSCRIPTION_SUCCESS_MESSAGE = "Iscrizione completata.";
-    private static final String SUBSCRIPTION_FAILURE_MESSAGE = "Iscrizione non riuscita (proposta non aperta, scaduta o piena).";
+    private static final String SUBSCRIPTION_FAILURE_MESSAGE = "Iscrizione non riuscita (proposta non aperta, scaduta, piena o sei già iscritto).";
     private static final String NOTIFICATION_REMOVE_SUCCESS_MESSAGE = "Notifica rimossa.";
     private static final String NOTIFICATION_REMOVE_FAILURE_MESSAGE = "Impossibile rimuovere la notifica.";
     private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
@@ -46,6 +46,8 @@ public class ParticipantInteraction extends UserInteraction {
     private static final String CHOOSE_OPEN_PROPOSAL_TITLE = "Seleziona la proposta a cui aderire";
     private static final String CHOOSE_NOTIFICATION_TO_REMOVE_TITLE = "Seleziona la notifica da cancellare";
     private static final String ASK_DELETE_NOTIFICATION = "Vuoi cancellare una notifica";
+    private static final String PERSONAL_SPACE_TITLE = "== Spazio Personale ==";
+    private static final String NOTIFICATION_BULLET = ") ";
 
     private static final List<String> ACCESS_MENU_ENTRIES = List.of(
             ACCESS_LOGIN,
@@ -136,14 +138,14 @@ public class ParticipantInteraction extends UserInteraction {
     }
 
     public void showNotifications(List<Notification> notifications) {
-        printInfo("== Spazio Personale ==");
+        printInfo(PERSONAL_SPACE_TITLE);
         if (notifications == null || notifications.isEmpty()) {
             printCancelled(NO_NOTIFICATIONS_MESSAGE);
             return;
         }
         for (int i = 0; i < notifications.size(); i++) {
             Notification notification = notifications.get(i);
-            System.out.println((i + 1) + ") " + notification.getMessage());
+            System.out.println((i + 1) + NOTIFICATION_BULLET + notification.getMessage());
         }
         System.out.println();
     }

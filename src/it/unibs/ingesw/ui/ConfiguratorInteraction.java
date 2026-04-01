@@ -1,7 +1,6 @@
 package it.unibs.ingesw.ui;
 
-import it.unibs.ingesw.console.format.Alignment;
-import it.unibs.ingesw.console.format.FormatValues;
+import it.unibs.ingesw.console.format.*;
 import it.unibs.ingesw.console.input.InputData;
 import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.console.table.CommandLineTable;
@@ -25,6 +24,7 @@ import java.util.stream.Collectors;
  * Handles command-line interactions dedicated to configurators.
  */
 public class ConfiguratorInteraction extends UserInteraction {
+    private static final String BACKEND_TITLE = "=== Backend Configuratore ===";
     private static final String FIRST_CONFIGURATION_NOTICE = "Prima configurazione: impostazione campi base.";
 
     private static final String LOGIN_USERNAME_PROMPT = "Username: ";
@@ -131,6 +131,15 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String FIELD_TABLE_TITLE_TEMPLATE = "== %s ==";
     private static final String ALL_CATEGORY_FIELDS_TITLE = "Campi";
     private static final String ARCHIVE_TITLE = "== Archivio Proposte ==";
+    private static final String DATE_TYPE_LABEL_TEMPLATE = "%s, formato GG/MM/AAAA";
+    private static final String TIME_TYPE_LABEL_TEMPLATE = "%s, formato HH:MM";
+    private static final String DECIMAL_TYPE_LABEL_TEMPLATE = "%s, es. 12,50 o 12.50";
+    private static final String ARCHIVE_PROPOSAL_TEMPLATE = "- Proposta #%d | Categoria: %s | Stato corrente: %s";
+    private static final String ARCHIVE_SUBSCRIBERS_TEMPLATE = "  Iscritti: %s";
+    private static final String ARCHIVE_FIELDS_LABEL = "  Campi:";
+    private static final String ARCHIVE_FIELD_ENTRY_TEMPLATE = "  - %s: %s";
+    private static final String ARCHIVE_STATUS_HISTORY_LABEL = "  Storico stati:";
+    private static final String ARCHIVE_STATUS_ENTRY_TEMPLATE = "  - %s (%s)";
 
     private static final String TABLE_HEADER_INDEX = "N";
     private static final String TABLE_HEADER_NAME = "Nome";
@@ -157,11 +166,13 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String BASE_FIELD_FEE_DESCRIPTION = "spesa individuale stimata per l'iniziativa";
     private static final String BASE_FIELD_END_DATE_NAME = "Data conclusiva";
     private static final String BASE_FIELD_END_DATE_DESCRIPTION = "data di conclusione dell'iniziativa";
+    private static final String USER_DATE_PATTERN = "dd/MM/uuuu";
+    private static final String USER_TIME_PATTERN = "HH:mm";
     private static final DateTimeFormatter USER_DATE_FORMATTER = DateTimeFormatter
-            .ofPattern("dd/MM/uuuu")
+            .ofPattern(USER_DATE_PATTERN)
             .withResolverStyle(ResolverStyle.STRICT);
     private static final DateTimeFormatter USER_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("HH:mm")
+            .ofPattern(USER_TIME_PATTERN)
             .withResolverStyle(ResolverStyle.STRICT);
 
     private static final List<BaseFieldTemplate> BASE_FIELDS = List.of(
@@ -201,6 +212,10 @@ public class ConfiguratorInteraction extends UserInteraction {
             PROPOSALS_PUBLISH_VALID,
             PROPOSALS_SHOW_BOARD
     );
+
+    public void printBackEndTitle() {
+        printInfo(FormatStrings.addFormat(BACKEND_TITLE, AnsiColors.BLUE, AnsiWeights.BOLD, AnsiDecorations.UNDERLINE));
+    }
 
     public void printFirstConfigurationNotice() {
         printInfo(FIRST_CONFIGURATION_NOTICE);
@@ -332,9 +347,9 @@ public class ConfiguratorInteraction extends UserInteraction {
 
     public String readFieldValue(Field field) {
         String dataTypeLabel = switch (field.getDataType()) {
-            case DATE -> field.getDataType() + ", formato GG/MM/AAAA";
-            case TIME -> field.getDataType() + ", formato HH:MM";
-            case DECIMAL -> field.getDataType() + ", es. 12,50 o 12.50";
+            case DATE -> DATE_TYPE_LABEL_TEMPLATE.formatted(field.getDataType());
+            case TIME -> TIME_TYPE_LABEL_TEMPLATE.formatted(field.getDataType());
+            case DECIMAL -> DECIMAL_TYPE_LABEL_TEMPLATE.formatted(field.getDataType());
             default -> field.getDataType().toString();
         };
         String prompt = FIELD_VALUE_PROMPT_TEMPLATE.formatted(field.getName(), dataTypeLabel);
@@ -556,24 +571,26 @@ public class ConfiguratorInteraction extends UserInteraction {
             if (proposal == null) {
                 continue;
             }
-            System.out.println("- Proposta #" + proposal.getId()
-                    + " | Categoria: " + proposal.getCategoryName()
-                    + " | Stato corrente: " + proposal.getCurrentStatus());
-            System.out.println("  Iscritti: " + proposal.getSubscribers());
-            System.out.println("  Campi:");
+            System.out.printf(
+                    (ARCHIVE_PROPOSAL_TEMPLATE) + "%n", proposal.getId(),
+                    proposal.getCategoryName(),
+                    proposal.getCurrentStatus()
+            );
+            System.out.printf((ARCHIVE_SUBSCRIBERS_TEMPLATE) + "%n", proposal.getSubscribers());
+            System.out.println(ARCHIVE_FIELDS_LABEL);
             for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
                 String formattedValue = FormatValues.formatField(
                         proposal,
                         valueEntry.getKey(),
                         valueEntry.getValue()
                 );
-                System.out.println("  - " + valueEntry.getKey() + ": " + formattedValue);
+                System.out.printf((ARCHIVE_FIELD_ENTRY_TEMPLATE) + "%n", valueEntry.getKey(), formattedValue);
             }
 
-            System.out.println("  Storico stati:");
+            System.out.println(ARCHIVE_STATUS_HISTORY_LABEL);
             for (StateLog stateLog : proposal.getStatusHistory()) {
                 String when = FormatValues.formatDateTime(stateLog.getTimestamp());
-                System.out.println("  - " + stateLog.getStatus() + " (" + when + ")");
+                System.out.printf((ARCHIVE_STATUS_ENTRY_TEMPLATE) + "%n", stateLog.getStatus(), when);
             }
             System.out.println();
         }

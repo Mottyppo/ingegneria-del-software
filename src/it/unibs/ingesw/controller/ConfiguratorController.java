@@ -1,6 +1,6 @@
-package it.unibs.ingesw.ui;
+package it.unibs.ingesw.controller;
 
-import it.unibs.ingesw.controller.SystemManager;
+import it.unibs.ingesw.application.ApplicationContext;
 import it.unibs.ingesw.model.Category;
 import it.unibs.ingesw.model.Configurator;
 import it.unibs.ingesw.model.DataType;
@@ -8,6 +8,11 @@ import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
+import it.unibs.ingesw.service.AuthenticationService;
+import it.unibs.ingesw.service.ConfigurationService;
+import it.unibs.ingesw.service.ProposalLifecycleService;
+import it.unibs.ingesw.service.ProposalService;
+import it.unibs.ingesw.ui.ConfiguratorInteraction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -17,31 +22,35 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Coordinates application use cases and delegates all terminal I/O to {@link ConfiguratorInteraction}.
+ * Coordinates CLI workflows dedicated to configurators.
  *
- * <p>The class contains the interaction flow logic of the application while keeping
- * display and input operations separated in the dedicated user interaction adapter.</p>
+ * <p>The controller manages the configurator flow while delegating all terminal
+ * I/O to {@link ConfiguratorInteraction}.</p>
  *
  * <p><strong>Features:</strong></p>
  * <ul>
- *   <li>Authenticates configurators and manages first-access credential updates.</li>
- *   <li>Drives base, common, and specific field management workflows.</li>
- *   <li>Handles category CRUD operations through menu-based interactions.</li>
- *   <li>Handles proposal creation, optional publication, and board visualization.</li>
+ *   <li>Handles configurator login and first-access credential updates.</li>
+ *   <li>Drives configuration and category management flows.</li>
+ *   <li>Handles proposal creation, publication, and archive visualization.</li>
  * </ul>
  */
-public class ConfiguratorInteractionManager {
-
-    private final SystemManager manager;
+public class ConfiguratorController {
+    private final AuthenticationService authenticationService;
+    private final ConfigurationService configurationService;
+    private final ProposalService proposalService;
+    private final ProposalLifecycleService proposalLifecycleService;
     private final ConfiguratorInteraction interaction;
 
     /**
-     * Creates a coordinator bound to the given system manager.
+     * Creates a configurator controller bound to the given application context.
      *
-     * @param manager The system manager that executes business operations.
+     * @param context The application context used to execute use cases.
      */
-    public ConfiguratorInteractionManager(SystemManager manager) {
-        this.manager = manager;
+    public ConfiguratorController(ApplicationContext context) {
+        this.authenticationService = context.getAuthenticationService();
+        this.configurationService = context.getConfigurationService();
+        this.proposalService = context.getProposalService();
+        this.proposalLifecycleService = context.getProposalLifecycleService();
         this.interaction = new ConfiguratorInteraction();
     }
 
@@ -49,9 +58,7 @@ public class ConfiguratorInteractionManager {
      * Starts the complete interactive flow of the configurator backend.
      */
     public void start() {
-        interaction.clearConsole();
-        interaction.printBanner();
-        interaction.printApplicationTitle();
+        interaction.printBackEndTitle();
 
         Configurator configurator = login();
         if (configurator == null) {
@@ -62,12 +69,12 @@ public class ConfiguratorInteractionManager {
             manageFirstAccess(configurator);
         }
 
-        if (!manager.areBaseFieldsSet()) {
+        if (!configurationService.areBaseFieldsSet()) {
             interaction.printFirstConfigurationNotice();
             setupBaseFields();
         }
 
-        manager.refreshProposalLifecycle();
+        proposalLifecycleService.refreshProposalLifecycle();
         mainMenu();
     }
 
@@ -80,7 +87,7 @@ public class ConfiguratorInteractionManager {
         while (true) {
             String username = interaction.readLoginUsername();
             String password = interaction.readLoginPassword();
-            Configurator configurator = manager.authenticateConfigurator(username, password);
+            Configurator configurator = authenticationService.authenticateConfigurator(username, password);
             if (configurator != null) {
                 return configurator;
             }
@@ -99,7 +106,7 @@ public class ConfiguratorInteractionManager {
         while (true) {
             String newUsername = interaction.readNewUsername();
             String newPassword = interaction.readNewPassword();
-            if (manager.updateCredentials(configurator, newUsername, newPassword)) {
+            if (authenticationService.updateCredentials(configurator, newUsername, newPassword)) {
                 interaction.printCredentialsUpdated();
                 return;
             }
@@ -135,25 +142,25 @@ public class ConfiguratorInteractionManager {
         }
 
         executeAndPrint(
-            manager.setBaseFields(fields),
-            interaction.baseFieldsSetSuccessMessage(),
-            interaction.baseFieldsSetFailureMessage()
+                configurationService.setBaseFields(fields),
+                interaction.baseFieldsSetSuccessMessage(),
+                interaction.baseFieldsSetFailureMessage()
         );
     }
 
     /**
-     * Displays and handles the top-level menu loop.
+     * Displays and handles the top-level configurator menu loop.
      */
     private void mainMenu() {
         boolean exit = false;
 
         while (!exit) {
-            int choice = interaction.chooseMainMenu(manager.areBaseFieldsSet());
+            int choice = interaction.chooseMainMenu(configurationService.areBaseFieldsSet());
             switch (choice) {
                 case 0 -> exit = true;
                 case 1 -> {
-                    if (manager.areBaseFieldsSet()) {
-                        interaction.showFields(interaction.baseFieldsTitle(), manager.getBaseFields());
+                    if (configurationService.areBaseFieldsSet()) {
+                        interaction.showFields(interaction.baseFieldsTitle(), configurationService.getBaseFields());
                     } else {
                         setupBaseFields();
                     }
@@ -194,7 +201,7 @@ public class ConfiguratorInteractionManager {
      * @return {@code true} if base fields are available, {@code false} otherwise.
      */
     private boolean requireBaseFields() {
-        if (!manager.areBaseFieldsSet()) {
+        if (!configurationService.areBaseFieldsSet()) {
             interaction.printBaseFieldsRequired();
             return false;
         }
@@ -215,41 +222,41 @@ public class ConfiguratorInteractionManager {
                     Field field = promptForNewField(FieldType.COMMON, false, null, null);
                     if (field != null) {
                         executeAndPrint(
-                            manager.addCommonField(field),
-                            interaction.commonFieldAddSuccessMessage(),
-                            interaction.commonFieldAddFailureMessage()
+                                configurationService.addCommonField(field),
+                                interaction.commonFieldAddSuccessMessage(),
+                                interaction.commonFieldAddFailureMessage()
                         );
                     }
                 }
                 case 2 -> {
                     int index = interaction.chooseIndex(
-                        manager.getCommonFields(),
-                        interaction.commonFieldToRemoveTitle(),
-                        Field::getName
+                            configurationService.getCommonFields(),
+                            interaction.commonFieldToRemoveTitle(),
+                            Field::getName
                     );
                     if (index >= 0) {
                         executeAndPrint(
-                            manager.removeCommonField(index),
-                            interaction.commonFieldRemoveSuccessMessage(),
-                            interaction.commonFieldRemoveFailureMessage()
+                                configurationService.removeCommonField(index),
+                                interaction.commonFieldRemoveSuccessMessage(),
+                                interaction.commonFieldRemoveFailureMessage()
                         );
                     }
                 }
                 case 3 -> {
                     int index = interaction.chooseIndex(
-                        manager.getCommonFields(),
-                        interaction.commonFieldToEditTitle(),
-                        Field::getName
+                            configurationService.getCommonFields(),
+                            interaction.commonFieldToEditTitle(),
+                            Field::getName
                     );
                     if (index >= 0) {
                         executeAndPrint(
-                            manager.toggleMandatorinessCommonField(index),
-                            interaction.commonFieldToggleSuccessMessage(),
-                            interaction.commonFieldToggleFailureMessage()
+                                configurationService.toggleMandatorinessCommonField(index),
+                                interaction.commonFieldToggleSuccessMessage(),
+                                interaction.commonFieldToggleFailureMessage()
                         );
                     }
                 }
-                case 4 -> interaction.showFields(interaction.commonFieldsTitle(), manager.getCommonFields());
+                case 4 -> interaction.showFields(interaction.commonFieldsTitle(), configurationService.getCommonFields());
                 default -> interaction.printInvalidChoice();
             }
         }
@@ -268,15 +275,15 @@ public class ConfiguratorInteractionManager {
                 case 1 -> addCategory();
                 case 2 -> {
                     int index = interaction.chooseIndex(
-                        manager.getCategories(),
-                        interaction.categoryToRemoveTitle(),
-                        Category::getName
+                            configurationService.getCategories(),
+                            interaction.categoryToRemoveTitle(),
+                            Category::getName
                     );
                     if (index >= 0) {
                         executeAndPrint(
-                            manager.removeCategory(index),
-                            interaction.categoryRemoveSuccessMessage(),
-                            interaction.categoryRemoveFailureMessage()
+                                configurationService.removeCategory(index),
+                                interaction.categoryRemoveSuccessMessage(),
+                                interaction.categoryRemoveFailureMessage()
                         );
                     }
                 }
@@ -292,7 +299,7 @@ public class ConfiguratorInteractionManager {
      */
     private void addCategory() {
         String name = interaction.readCategoryName();
-        if (!manager.isCategoryNameAvailable(name)) {
+        if (!configurationService.isCategoryNameAvailable(name)) {
             interaction.printCategoryNameAlreadyUsed();
             return;
         }
@@ -309,9 +316,9 @@ public class ConfiguratorInteractionManager {
         }
 
         executeAndPrint(
-            manager.addCategory(name, specificFields),
-            interaction.categoryAddSuccessMessage(),
-            interaction.categoryAddFailureMessage()
+                configurationService.addCategory(name, specificFields),
+                interaction.categoryAddSuccessMessage(),
+                interaction.categoryAddFailureMessage()
         );
     }
 
@@ -320,16 +327,16 @@ public class ConfiguratorInteractionManager {
      */
     private void manageSpecificFields() {
         int categoryIndex = interaction.chooseIndex(
-            manager.getCategories(),
-            interaction.categorySelectionTitle(),
-            Category::getName
+                configurationService.getCategories(),
+                interaction.categorySelectionTitle(),
+                Category::getName
         );
 
         if (categoryIndex < 0) {
             return;
         }
 
-        Category category = manager.getCategories().get(categoryIndex);
+        Category category = configurationService.getCategories().get(categoryIndex);
         boolean exit = false;
 
         while (!exit) {
@@ -340,43 +347,43 @@ public class ConfiguratorInteractionManager {
                     Field field = promptForNewField(FieldType.SPECIFIC, false, category, null);
                     if (field != null) {
                         executeAndPrint(
-                            manager.addSpecificField(categoryIndex, field),
-                            interaction.specificFieldAddSuccessMessage(),
-                            interaction.specificFieldAddFailureMessage()
+                                configurationService.addSpecificField(categoryIndex, field),
+                                interaction.specificFieldAddSuccessMessage(),
+                                interaction.specificFieldAddFailureMessage()
                         );
                     }
                 }
                 case 2 -> {
                     int fieldIndex = interaction.chooseIndex(
-                        category.getSpecificFields(),
-                        interaction.specificFieldToRemoveTitle(),
-                        Field::getName
+                            category.getSpecificFields(),
+                            interaction.specificFieldToRemoveTitle(),
+                            Field::getName
                     );
                     if (fieldIndex >= 0) {
                         executeAndPrint(
-                            manager.removeSpecificField(categoryIndex, fieldIndex),
-                            interaction.specificFieldRemoveSuccessMessage(),
-                            interaction.specificFieldRemoveFailureMessage()
+                                configurationService.removeSpecificField(categoryIndex, fieldIndex),
+                                interaction.specificFieldRemoveSuccessMessage(),
+                                interaction.specificFieldRemoveFailureMessage()
                         );
                     }
                 }
                 case 3 -> {
                     int fieldIndex = interaction.chooseIndex(
-                        category.getSpecificFields(),
-                        interaction.specificFieldToEditTitle(),
-                        Field::getName
+                            category.getSpecificFields(),
+                            interaction.specificFieldToEditTitle(),
+                            Field::getName
                     );
                     if (fieldIndex >= 0) {
                         executeAndPrint(
-                            manager.toggleMandatorinessSpecificField(categoryIndex, fieldIndex),
-                            interaction.specificFieldToggleSuccessMessage(),
-                            interaction.specificFieldToggleFailureMessage()
+                                configurationService.toggleMandatorinessSpecificField(categoryIndex, fieldIndex),
+                                interaction.specificFieldToggleSuccessMessage(),
+                                interaction.specificFieldToggleFailureMessage()
                         );
                     }
                 }
                 case 4 -> interaction.showFields(
-                    interaction.specificFieldsTitle(category.getName()),
-                    category.getSpecificFields()
+                        interaction.specificFieldsTitle(category.getName()),
+                        category.getSpecificFields()
                 );
                 default -> interaction.printInvalidChoice();
             }
@@ -395,7 +402,10 @@ public class ConfiguratorInteractionManager {
                 case 0 -> exit = true;
                 case 1 -> createProposal();
                 case 2 -> publishValidProposal();
-                case 3 -> interaction.showBoardByCategory(manager.getBoardByCategory());
+                case 3 -> {
+                    proposalLifecycleService.refreshProposalLifecycle();
+                    interaction.showBoard(proposalService.getBoardByCategory());
+                }
                 default -> interaction.printInvalidChoice();
             }
         }
@@ -405,23 +415,23 @@ public class ConfiguratorInteractionManager {
      * Guides the user in creating a proposal and optionally publishing it.
      */
     private void createProposal() {
-        List<Category> categories = manager.getCategories();
+        List<Category> categories = configurationService.getCategories();
         if (categories.isEmpty()) {
             interaction.printNoCategoryAvailable();
             return;
         }
 
         int categoryIndex = interaction.chooseIndex(
-            categories,
-            interaction.categorySelectionTitle(),
-            Category::getName
+                categories,
+                interaction.categorySelectionTitle(),
+                Category::getName
         );
         if (categoryIndex < 0) {
             return;
         }
 
         Category category = categories.get(categoryIndex);
-        List<Field> fields = manager.getSharedFieldsForCategory(category);
+        List<Field> fields = configurationService.getSharedFieldsForCategory(category);
         Map<String, String> rawValues = new LinkedHashMap<>();
 
         for (Field field : fields) {
@@ -431,7 +441,7 @@ public class ConfiguratorInteractionManager {
             rawValues.put(field.getName(), interaction.readFieldValue(field));
         }
 
-        Proposal proposal = manager.createProposal(categoryIndex, rawValues);
+        Proposal proposal = proposalService.createProposal(categoryIndex, rawValues);
         if (proposal == null) {
             interaction.printProposalInvalid();
             return;
@@ -449,17 +459,18 @@ public class ConfiguratorInteractionManager {
         }
 
         executeAndPrint(
-            manager.publishProposal(proposal),
-            interaction.proposalPublishSuccessMessage(),
-            interaction.proposalPublishFailureMessage()
+                proposalService.publishProposal(proposal),
+                interaction.proposalPublishSuccessMessage(),
+                interaction.proposalPublishFailureMessage()
         );
     }
 
     /**
-     * Allows the configurator to choose one valid proposal and publish it later.
+     * Allows the configurator to publish one previously valid proposal.
      */
     private void publishValidProposal() {
-        List<Proposal> validProposals = manager.getValidProposals();
+        proposalLifecycleService.refreshProposalLifecycle();
+        List<Proposal> validProposals = proposalService.getValidProposals();
         int index = interaction.chooseValidProposalToPublish(validProposals);
         if (index < 0) {
             return;
@@ -467,31 +478,31 @@ public class ConfiguratorInteractionManager {
 
         Proposal selected = validProposals.get(index);
         executeAndPrint(
-            manager.publishProposal(selected),
-            interaction.proposalPublishSuccessMessage(),
-            interaction.proposalPublishFailureMessage()
+                proposalService.publishProposal(selected),
+                interaction.proposalPublishSuccessMessage(),
+                interaction.proposalPublishFailureMessage()
         );
     }
 
     /**
-     * Prompts the user for a new field and validates local/global name uniqueness.
+     * Prompts the user for a new field and validates local/global uniqueness.
      *
      * @param type                  The field type to create.
-     * @param forceMandatory        Whether the field must be mandatory without user prompt.
-     * @param contextCategory       The category context for specific field uniqueness checks.
-     * @param localReservedNames    Optional local names reserved during batch creation.
-     * @return A newly created field, or {@code null} if validation fails or operation is canceled.
+     * @param forceMandatory        Whether the field must be mandatory without asking.
+     * @param contextCategory       The category context for uniqueness checks.
+     * @param localReservedNames    Optional names already reserved in the current batch.
+     * @return A new field, or {@code null} if validation fails or the operation is canceled.
      */
     private Field promptForNewField(
-        FieldType type,
-        boolean forceMandatory,
-        Category contextCategory,
-        Set<String> localReservedNames
+            FieldType type,
+            boolean forceMandatory,
+            Category contextCategory,
+            Set<String> localReservedNames
     ) {
         String name = interaction.readFieldName();
-        boolean takenGlobally = !manager.isFieldNameAvailableForCategory(name, contextCategory);
+        boolean takenGlobally = !configurationService.isFieldNameAvailableForCategory(name, contextCategory);
         boolean takenLocally = localReservedNames != null
-            && localReservedNames.contains(name.toLowerCase());
+                && localReservedNames.contains(name.toLowerCase());
 
         if (takenGlobally || takenLocally) {
             interaction.printFieldNameAlreadyUsed();
@@ -511,35 +522,36 @@ public class ConfiguratorInteractionManager {
     }
 
     /**
-     * Prints success or failure output for a completed operation.
+     * Prints the result of an executed operation.
      *
-     * @param result            Operation outcome.
-     * @param successMessage    Message for successful operations.
-     * @param failMessage       Message for failed operations.
+     * @param result         The operation outcome.
+     * @param successMessage The message to print on success.
+     * @param failMessage    The message to print on failure.
      */
     private void executeAndPrint(boolean result, String successMessage, String failMessage) {
         interaction.printOperationResult(result, successMessage, failMessage);
     }
 
     /**
-     * Displays all categories with their combined shared fields.
+     * Displays all categories with their shared fields.
      */
     private void showFullCategories() {
-        List<Category> categories = manager.getCategories();
+        List<Category> categories = configurationService.getCategories();
         if (categories.isEmpty()) {
             interaction.printNoCategoryAvailable();
             return;
         }
 
         for (Category category : categories) {
-            interaction.showCategoryFields(category.getName(), manager.getSharedFieldsForCategory(category));
+            interaction.showCategoryFields(category.getName(), configurationService.getSharedFieldsForCategory(category));
         }
     }
 
     /**
-     * Displays the full archive, including status history and subscribers.
+     * Displays the full proposal archive.
      */
     private void showArchive() {
-        interaction.showArchive(manager.getArchivedProposals());
+        proposalLifecycleService.refreshProposalLifecycle();
+        interaction.showArchive(proposalService.getArchivedProposals());
     }
 }

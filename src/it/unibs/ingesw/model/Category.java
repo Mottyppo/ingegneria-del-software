@@ -1,6 +1,7 @@
 package it.unibs.ingesw.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ public class Category {
 
     public Category(String name, List<Field> specificFields) {
         this.name = name;
-        this.specificFields = specificFields == null ? new ArrayList<>() : specificFields;
+        this.specificFields = specificFields == null ? new ArrayList<>() : new ArrayList<>(specificFields);
     }
 
     public String getName() {
@@ -37,7 +38,7 @@ public class Category {
         if (specificFields == null) {
             specificFields = new ArrayList<>();
         }
-        return specificFields;
+        return Collections.unmodifiableList(specificFields);
     }
 
     /**
@@ -46,6 +47,7 @@ public class Category {
      * @param field The field to add.
      */
     public void addSpecificField(Field field) {
+        ensureSpecificFields();
         specificFields.add(field);
     }
 
@@ -55,6 +57,7 @@ public class Category {
      * @param index The index of the field to remove.
      */
     public void removeSpecificField(int index) {
+        ensureSpecificFields();
         specificFields.remove(index);
     }
 
@@ -64,7 +67,17 @@ public class Category {
      * @param index The index of the field to update.
      */
     public void toggleMandatoriness(int index) {
+        ensureSpecificFields();
         specificFields.get(index).toggleMandatoriness();
+    }
+
+    /**
+     * Ensures that the category always has a concrete list of specific fields.
+     */
+    private void ensureSpecificFields() {
+        if (specificFields == null) {
+            specificFields = new ArrayList<>();
+        }
     }
 
     @Override
