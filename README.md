@@ -13,8 +13,5 @@
 
 ## FIX:
 + Stringhe come costanti (controller e ui)
-+ ?? Serve davvero parseFlexibleDate in SystemManager ??
-+ Buildnotification come controller separato
 + Split SystemManager in 3 (fruitore, configuratore e comune)
-+ Split UserInteraction in 3 (fruitore, configuratore e comune)
-+ Fix documentation for the classes that have been split
++ Fix documentation for the classes that have been split + review total documentation

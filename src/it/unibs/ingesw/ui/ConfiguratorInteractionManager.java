@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Coordinates application use cases and delegates all terminal I/O to {@link UserInteraction}.
+ * Coordinates application use cases and delegates all terminal I/O to {@link ConfiguratorInteraction}.
  *
  * <p>The class contains the interaction flow logic of the application while keeping
  * display and input operations separated in the dedicated user interaction adapter.</p>
@@ -33,7 +33,7 @@ import java.util.Set;
 public class ConfiguratorInteractionManager {
 
     private final SystemManager manager;
-    private final UserInteraction interaction;
+    private final ConfiguratorInteraction interaction;
 
     /**
      * Creates a coordinator bound to the given system manager.
@@ -42,7 +42,7 @@ public class ConfiguratorInteractionManager {
      */
     public ConfiguratorInteractionManager(SystemManager manager) {
         this.manager = manager;
-        this.interaction = new UserInteraction();
+        this.interaction = new ConfiguratorInteraction();
     }
 
     /**
@@ -114,7 +114,7 @@ public class ConfiguratorInteractionManager {
         List<Field> fields = new ArrayList<>();
         Set<String> localNames = new HashSet<>();
 
-        for (UserInteraction.BaseFieldTemplate baseField : interaction.baseFieldTemplates()) {
+        for (ConfiguratorInteraction.BaseFieldTemplate baseField : interaction.baseFieldTemplates()) {
             DataType dataType = interaction.chooseBaseFieldDataType(baseField.name());
             if (dataType == null) {
                 interaction.printOperationCancelled();

@@ -1,5 +1,6 @@
 package it.unibs.ingesw.controller;
 
+import it.unibs.ingesw.factory.NotificationFactory;
 import it.unibs.ingesw.io.IOManager;
 import it.unibs.ingesw.model.Archive;
 import it.unibs.ingesw.model.Category;
@@ -45,9 +46,6 @@ public class SystemManager {
     private static final String END_DATE_FIELD_NAME = "Data conclusiva";
     private static final String PARTICIPANTS_FIELD_NAME = "Numero di partecipanti";
     private static final String FEE_FIELD_NAME = "Quota individuale";
-    private static final String TITLE_FIELD_NAME = "Titolo";
-    private static final String PLACE_FIELD_NAME = "Luogo";
-    private static final String TIME_FIELD_NAME = "Ora";
 
     private static final DateTimeFormatter USER_DATE_FORMATTER = DateTimeFormatter
             .ofPattern("dd/MM/uuuu")
@@ -543,7 +541,7 @@ public class SystemManager {
             return false;
         }
 
-        LocalDate deadline = parseFlexibleDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
+        LocalDate deadline = parseIsoDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
         if (deadline == null || LocalDate.now().isAfter(deadline)) {
             return false;
         }
@@ -820,9 +818,9 @@ public class SystemManager {
      * @return {@code true} if all rules are respected, {@code false} otherwise.
      */
     private boolean checkDomainRules(Map<String, String> values) {
-        LocalDate deadline = parseFlexibleDate(values.get(DEADLINE_FIELD_NAME));
-        LocalDate startDate = parseFlexibleDate(values.get(START_DATE_FIELD_NAME));
-        LocalDate endDate = parseFlexibleDate(values.get(END_DATE_FIELD_NAME));
+        LocalDate deadline = parseIsoDate(values.get(DEADLINE_FIELD_NAME));
+        LocalDate startDate = parseIsoDate(values.get(START_DATE_FIELD_NAME));
+        LocalDate endDate = parseIsoDate(values.get(END_DATE_FIELD_NAME));
         Integer participants = parseInteger(values.get(PARTICIPANTS_FIELD_NAME));
         Double fee = parseDouble(values.get(FEE_FIELD_NAME));
 
@@ -847,21 +845,6 @@ public class SystemManager {
         }
         try {
             return LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (DateTimeParseException exception) {
-            return null;
-        }
-    }
-
-    private LocalDate parseFlexibleDate(String value) {
-        LocalDate iso = parseIsoDate(value);
-        if (iso != null) {
-            return iso;
-        }
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return LocalDate.parse(value, USER_DATE_FORMATTER);
         } catch (DateTimeParseException exception) {
             return null;
         }
@@ -917,17 +900,17 @@ public class SystemManager {
     }
 
     private boolean isDeadlineExpired(Proposal proposal) {
-        LocalDate deadline = parseFlexibleDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
+        LocalDate deadline = parseIsoDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
         return deadline != null && LocalDate.now().isAfter(deadline);
     }
 
     private boolean isAfterEndDate(Proposal proposal) {
-        LocalDate endDate = parseFlexibleDate(proposal.getFieldValues().get(END_DATE_FIELD_NAME));
+        LocalDate endDate = parseIsoDate(proposal.getFieldValues().get(END_DATE_FIELD_NAME));
         return endDate != null && LocalDate.now().isAfter(endDate);
     }
 
     private boolean notifySubscribersProposalConfirmed(Proposal proposal) {
-        String message = buildProposalConfirmedNotification(proposal);
+        String message = NotificationFactory.buildProposalConfirmedNotification(proposal);
         boolean changed = false;
         for (String username : proposal.getSubscribers()) {
             Participant participant = findParticipantByUsername(username);
@@ -939,7 +922,7 @@ public class SystemManager {
     }
 
     private boolean notifySubscribersProposalCanceled(Proposal proposal) {
-        String message = buildProposalCanceledNotification(proposal);
+        String message = NotificationFactory.buildProposalCanceledNotification(proposal);
         boolean changed = false;
         for (String username : proposal.getSubscribers()) {
             Participant participant = findParticipantByUsername(username);
@@ -948,31 +931,6 @@ public class SystemManager {
             }
         }
         return changed;
-    }
-
-    private String buildProposalConfirmedNotification(Proposal proposal) {
-        Map<String, String> values = proposal.getFieldValues();
-        String title = values.getOrDefault(TITLE_FIELD_NAME, "(senza titolo)");
-        String date = values.getOrDefault(START_DATE_FIELD_NAME, "-");
-        String time = values.getOrDefault(TIME_FIELD_NAME, "-");
-        String place = values.getOrDefault(PLACE_FIELD_NAME, "-");
-        String fee = values.getOrDefault(FEE_FIELD_NAME, "-");
-
-        return "Proposta #" + proposal.getId()
-                + " confermata: \"" + title + "\". "
-                + "Promemoria evento -> Data: " + date
-                + ", Ora: " + time
-                + ", Luogo: " + place
-                + ", Quota individuale: " + fee + ".";
-    }
-
-    private String buildProposalCanceledNotification(Proposal proposal) {
-        Map<String, String> values = proposal.getFieldValues();
-        String title = values.getOrDefault(TITLE_FIELD_NAME, "(senza titolo)");
-
-        return "Proposta #" + proposal.getId()
-                + " annullata: \"" + title + "\". "
-                + "L'iniziativa non ha raggiunto il numero richiesto di partecipanti entro la chiusura iscrizioni.";
     }
 
     private String parseBoolean(String value) {
