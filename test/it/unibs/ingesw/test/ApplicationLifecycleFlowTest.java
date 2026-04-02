@@ -95,6 +95,59 @@ public class ApplicationLifecycleFlowTest {
     }
 
     @Test
+    void unsubscribeWithinDeadlineRemovesSubscriberAndAllowsResubscription() {
+        ApplicationContext context = prepareContextWithSportCategory();
+        AuthenticationService authenticationService = context.getAuthenticationService();
+        ProposalService proposalService = context.getProposalService();
+
+        Participant participant = authenticationService.signUpParticipant("Mario", "Rossi", "mrossi", "pwd");
+        assertNotNull(participant);
+
+        Proposal proposal = proposalService.createProposal(0, validRawValuesWithParticipants(2));
+        assertNotNull(proposal);
+        assertTrue(proposalService.publishProposal(proposal));
+
+        int proposalId = proposalService.getOpenProposals().getFirst().getId();
+        assertTrue(proposalService.subscribeParticipantToProposal(participant, proposalId));
+        assertEquals(1, proposalService.getSubscribedOpenProposals(participant).size());
+
+        assertTrue(proposalService.unsubscribeParticipantFromProposal(participant, proposalId));
+        assertTrue(proposalService.getSubscribedOpenProposals(participant).isEmpty());
+        assertTrue(proposalService.getOpenProposals().getFirst().getSubscribers().isEmpty());
+
+        assertTrue(proposalService.subscribeParticipantToProposal(participant, proposalId));
+        assertEquals(1, proposalService.getOpenProposals().getFirst().getSubscribers().size());
+    }
+
+    @Test
+    void unsubscribeFailsAfterDeadline() {
+        ParticipantRepository participantRepository = new JsonParticipantRepository();
+        ArchiveRepository archiveRepository = new JsonArchiveRepository();
+        Participant participant = new Participant("Mario", "Rossi", "mrossi", "pwd");
+        participantRepository.writeAll(List.of(participant));
+
+        Archive archive = new Archive();
+        Proposal expiredProposal = buildOpenProposal(
+                20,
+                1,
+                LocalDate.now().minusDays(1),
+                LocalDate.now().plusDays(2)
+        );
+        assertTrue(expiredProposal.addSubscriber("mrossi", 1));
+        archive.saveProposal(expiredProposal);
+        archiveRepository.write(archive);
+
+        ApplicationContext context = newContext();
+        AuthenticationService authenticationService = context.getAuthenticationService();
+        ProposalService proposalService = context.getProposalService();
+
+        Participant loaded = authenticationService.authenticateParticipant("mrossi", "pwd");
+        assertNotNull(loaded);
+        assertFalse(proposalService.unsubscribeParticipantFromProposal(loaded, 20));
+        assertEquals(1, proposalService.getArchivedProposals().getFirst().getSubscribers().size());
+    }
+
+    @Test
     void transitionsFromOpenToConfirmedOrCanceledGenerateNotifications() {
         ParticipantRepository participantRepository = new JsonParticipantRepository();
         ArchiveRepository archiveRepository = new JsonArchiveRepository();
@@ -174,6 +227,116 @@ public class ApplicationLifecycleFlowTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals(ProposalStatus.CLOSE, closed.getCurrentStatus());
+    }
+
+    @Test
+    void withdrawingOpenProposalRemovesItFromBoardAndNotifiesSubscribers() {
+        ParticipantRepository participantRepository = new JsonParticipantRepository();
+        ArchiveRepository archiveRepository = new JsonArchiveRepository();
+        Participant participant = new Participant("Mario", "Rossi", "mrossi", "pwd");
+        participantRepository.writeAll(List.of(participant));
+
+        Archive archive = new Archive();
+        Proposal proposal = buildOpenProposal(
+                30,
+                1,
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(3)
+        );
+        assertTrue(proposal.addSubscriber("mrossi", 1));
+        archive.saveProposal(proposal);
+        archiveRepository.write(archive);
+
+        ApplicationContext context = newContext();
+        ProposalService proposalService = context.getProposalService();
+        Proposal openProposal = proposalService.getOpenProposals().getFirst();
+
+        assertTrue(proposalService.withdrawProposal(openProposal));
+        assertTrue(proposalService.getOpenProposals().isEmpty());
+        assertTrue(proposalService.getBoardByCategory().isEmpty());
+
+        ApplicationContext reloadedContext = newContext();
+        Proposal withdrawn = reloadedContext.getProposalService().getArchivedProposals().stream()
+                .filter(current -> current.getId() == 30)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ProposalStatus.WITHDRAWED, withdrawn.getCurrentStatus());
+        assertEquals(List.of("mrossi"), withdrawn.getSubscribers());
+
+        Participant notified = reloadedContext.getAuthenticationService().authenticateParticipant("mrossi", "pwd");
+        assertNotNull(notified);
+        assertEquals(1, reloadedContext.getProposalService().getParticipantNotifications(notified).size());
+        assertTrue(
+                reloadedContext.getProposalService().getParticipantNotifications(notified).getFirst().getMessage().contains("ritirata")
+        );
+    }
+
+    @Test
+    void withdrawingConfirmedProposalPersistsHistoryAndKeepsSubscribersFrozen() {
+        ParticipantRepository participantRepository = new JsonParticipantRepository();
+        ArchiveRepository archiveRepository = new JsonArchiveRepository();
+        Participant participant = new Participant("Mario", "Rossi", "mrossi", "pwd");
+        participantRepository.writeAll(List.of(participant));
+
+        Archive archive = new Archive();
+        Proposal proposal = buildOpenProposal(
+                31,
+                1,
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(4)
+        );
+        assertTrue(proposal.addSubscriber("mrossi", 1));
+        assertTrue(proposal.markAsConfirmed());
+        archive.saveProposal(proposal);
+        archiveRepository.write(archive);
+
+        ApplicationContext context = newContext();
+        ProposalService proposalService = context.getProposalService();
+        Proposal confirmedProposal = proposalService.getArchivedProposals().stream()
+                .filter(current -> current.getId() == 31)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(proposalService.withdrawProposal(confirmedProposal));
+
+        ApplicationContext reloadedContext = newContext();
+        ProposalService reloadedProposalService = reloadedContext.getProposalService();
+        Proposal withdrawn = reloadedProposalService.getArchivedProposals().stream()
+                .filter(current -> current.getId() == 31)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ProposalStatus.WITHDRAWED, withdrawn.getCurrentStatus());
+        assertEquals(ProposalStatus.WITHDRAWED, withdrawn.getStatusHistory().getLast().getStatus());
+        assertEquals(List.of("mrossi"), withdrawn.getSubscribers());
+
+        Participant loaded = reloadedContext.getAuthenticationService().authenticateParticipant("mrossi", "pwd");
+        assertNotNull(loaded);
+        assertFalse(reloadedProposalService.unsubscribeParticipantFromProposal(loaded, 31));
+        assertEquals(List.of("mrossi"), withdrawn.getSubscribers());
+    }
+
+    @Test
+    void cannotWithdrawProposalOnOrAfterStartDate() {
+        ArchiveRepository archiveRepository = new JsonArchiveRepository();
+        Archive archive = new Archive();
+        Proposal proposal = buildOpenProposal(
+                32,
+                1,
+                LocalDate.now().minusDays(1),
+                LocalDate.now().plusDays(1)
+        );
+        archive.saveProposal(proposal);
+        archiveRepository.write(archive);
+
+        ApplicationContext context = newContext();
+        ProposalService proposalService = context.getProposalService();
+        Proposal openProposal = proposalService.getOpenProposals().getFirst();
+
+        assertFalse(proposalService.withdrawProposal(openProposal));
+        Proposal stillOpen = proposalService.getArchivedProposals().stream()
+                .filter(current -> current.getId() == 32)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(ProposalStatus.OPEN, stillOpen.getCurrentStatus());
     }
 
     @Test

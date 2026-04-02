@@ -70,6 +70,8 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String PROPOSAL_CREATED_NOT_VALID_TEMPLATE = "Proposta #%d creata e salvata in archivio ma non valida.";
     private static final String PROPOSAL_PUBLISH_SUCCESS_MESSAGE = "Proposta pubblicata in bacheca.";
     private static final String PROPOSAL_PUBLISH_FAILURE_MESSAGE = "Impossibile pubblicare la proposta.";
+    private static final String PROPOSAL_WITHDRAW_SUCCESS_MESSAGE = "Proposta ritirata.";
+    private static final String PROPOSAL_WITHDRAW_FAILURE_MESSAGE = "Impossibile ritirare la proposta.";
     private static final String NO_ARCHIVED_PROPOSALS_MESSAGE = "Archivio proposte vuoto.";
     private static final String DATE_FORMAT_ERROR_MESSAGE = "Formato data non valido. Usa GG/MM/AAAA.";
     private static final String TIME_FORMAT_ERROR_MESSAGE = "Formato ora non valido. Usa HH:MM.";
@@ -110,6 +112,7 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String PROPOSALS_MENU_TITLE = "Proposte";
     private static final String PROPOSALS_CREATE = "Crea proposta";
     private static final String PROPOSALS_PUBLISH_VALID = "Pubblica proposta valida";
+    private static final String PROPOSALS_WITHDRAW = "Ritira proposta aperta o confermata";
     private static final String PROPOSALS_SHOW_BOARD = "Visualizza bacheca per categoria";
 
     private static final String CHOOSE_COMMON_TO_REMOVE = "Seleziona il campo comune da rimuovere";
@@ -117,6 +120,7 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String CHOOSE_CATEGORY_TO_REMOVE = "Seleziona la categoria da rimuovere";
     private static final String CHOOSE_CATEGORY = "Seleziona la categoria";
     private static final String CHOOSE_VALID_PROPOSAL = "Seleziona la proposta valida da pubblicare";
+    private static final String CHOOSE_WITHDRAWABLE_PROPOSAL = "Seleziona la proposta da ritirare";
     private static final String CHOOSE_SPECIFIC_TO_REMOVE = "Seleziona il campo da rimuovere";
     private static final String CHOOSE_SPECIFIC_TO_EDIT = "Seleziona il campo da modificare";
 
@@ -210,6 +214,7 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final List<String> PROPOSALS_MENU_ENTRIES = List.of(
             PROPOSALS_CREATE,
             PROPOSALS_PUBLISH_VALID,
+            PROPOSALS_WITHDRAW,
             PROPOSALS_SHOW_BOARD
     );
 
@@ -444,6 +449,14 @@ public class ConfiguratorInteraction extends UserInteraction {
         );
     }
 
+    public int chooseWithdrawableProposal(List<Proposal> proposals) {
+        return chooseIndex(
+                proposals,
+                CHOOSE_WITHDRAWABLE_PROPOSAL,
+                this::summarizeProposalForSelection
+        );
+    }
+
     public String commonFieldToRemoveTitle() {
         return CHOOSE_COMMON_TO_REMOVE;
     }
@@ -558,6 +571,14 @@ public class ConfiguratorInteraction extends UserInteraction {
 
     public String proposalPublishFailureMessage() {
         return PROPOSAL_PUBLISH_FAILURE_MESSAGE;
+    }
+
+    public String proposalWithdrawSuccessMessage() {
+        return PROPOSAL_WITHDRAW_SUCCESS_MESSAGE;
+    }
+
+    public String proposalWithdrawFailureMessage() {
+        return PROPOSAL_WITHDRAW_FAILURE_MESSAGE;
     }
 
     public void showArchive(List<Proposal> proposals) {

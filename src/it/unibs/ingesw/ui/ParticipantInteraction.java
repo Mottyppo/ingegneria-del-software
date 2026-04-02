@@ -25,6 +25,7 @@ public class ParticipantInteraction extends UserInteraction {
     private static final String MAIN_MENU_TITLE = "Menu Fruitore";
     private static final String MAIN_MENU_SHOW_BOARD = "Visualizza bacheca per categoria";
     private static final String MAIN_MENU_SUBSCRIBE = "Aderisci a proposta aperta";
+    private static final String MAIN_MENU_UNSUBSCRIBE = "Disdici iscrizione a proposta aperta";
     private static final String MAIN_MENU_OPEN_SPACE = "Apri spazio personale";
 
     private static final String LOGIN_USERNAME_PROMPT = "Username: ";
@@ -39,11 +40,15 @@ public class ParticipantInteraction extends UserInteraction {
     private static final String SIGNUP_FAILURE_MESSAGE = "Sign-up non riuscito. Username gia' in uso o dati non validi.";
     private static final String SUBSCRIPTION_SUCCESS_MESSAGE = "Iscrizione completata.";
     private static final String SUBSCRIPTION_FAILURE_MESSAGE = "Iscrizione non riuscita (proposta non aperta, scaduta, piena o sei già iscritto).";
+    private static final String UNSUBSCRIPTION_SUCCESS_MESSAGE = "Disdetta completata.";
+    private static final String UNSUBSCRIPTION_FAILURE_MESSAGE = "Disdetta non riuscita (proposta non aperta, scaduta o iscrizione non presente).";
     private static final String NOTIFICATION_REMOVE_SUCCESS_MESSAGE = "Notifica rimossa.";
     private static final String NOTIFICATION_REMOVE_FAILURE_MESSAGE = "Impossibile rimuovere la notifica.";
     private static final String NO_OPEN_PROPOSALS_MESSAGE = "Bacheca vuota.";
+    private static final String NO_SUBSCRIBED_OPEN_PROPOSALS_MESSAGE = "Non risulti iscritto ad alcuna proposta aperta disdicibile.";
     private static final String NO_NOTIFICATIONS_MESSAGE = "Spazio personale vuoto.";
     private static final String CHOOSE_OPEN_PROPOSAL_TITLE = "Seleziona la proposta a cui aderire";
+    private static final String CHOOSE_SUBSCRIBED_OPEN_PROPOSAL_TITLE = "Seleziona la proposta da cui disdire l'iscrizione";
     private static final String CHOOSE_NOTIFICATION_TO_REMOVE_TITLE = "Seleziona la notifica da cancellare";
     private static final String ASK_DELETE_NOTIFICATION = "Vuoi cancellare una notifica";
     private static final String PERSONAL_SPACE_TITLE = "== Spazio Personale ==";
@@ -57,6 +62,7 @@ public class ParticipantInteraction extends UserInteraction {
     private static final List<String> MAIN_MENU_ENTRIES = List.of(
             MAIN_MENU_SHOW_BOARD,
             MAIN_MENU_SUBSCRIBE,
+            MAIN_MENU_UNSUBSCRIBE,
             MAIN_MENU_OPEN_SPACE
     );
 
@@ -116,6 +122,14 @@ public class ParticipantInteraction extends UserInteraction {
         printError(SUBSCRIPTION_FAILURE_MESSAGE);
     }
 
+    public void printUnsubscriptionResult(boolean result) {
+        if (result) {
+            printSuccess(UNSUBSCRIPTION_SUCCESS_MESSAGE);
+            return;
+        }
+        printError(UNSUBSCRIPTION_FAILURE_MESSAGE);
+    }
+
     public void printNotificationRemoveResult(boolean result) {
         if (result) {
             printSuccess(NOTIFICATION_REMOVE_SUCCESS_MESSAGE);
@@ -132,6 +146,19 @@ public class ParticipantInteraction extends UserInteraction {
         return chooseIndex(
                 proposals,
                 CHOOSE_OPEN_PROPOSAL_TITLE,
+                this::summarizeProposalForSelection,
+                false
+        );
+    }
+
+    public int chooseSubscribedOpenProposal(List<Proposal> proposals) {
+        if (proposals == null || proposals.isEmpty()) {
+            printCancelled(NO_SUBSCRIBED_OPEN_PROPOSALS_MESSAGE);
+            return -1;
+        }
+        return chooseIndex(
+                proposals,
+                CHOOSE_SUBSCRIBED_OPEN_PROPOSAL_TITLE,
                 this::summarizeProposalForSelection,
                 false
         );

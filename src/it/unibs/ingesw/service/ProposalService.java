@@ -11,7 +11,7 @@ import it.unibs.ingesw.model.ProposalStatus;
 import it.unibs.ingesw.persistence.ArchiveRepository;
 import it.unibs.ingesw.persistence.ParticipantRepository;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +31,6 @@ import java.util.Map;
  * </ul>
  */
 public class ProposalService {
-    private static final String DEADLINE_FIELD_NAME = "Termine ultimo di iscrizione";
     private static final String PARTICIPANTS_FIELD_NAME = "Numero di partecipanti";
 
     private final Archive archive;
@@ -39,6 +38,7 @@ public class ProposalService {
     private final ArchiveRepository archiveRepository;
     private final ParticipantRepository participantRepository;
     private final ConfigurationService configurationService;
+    private final NotificationService notificationService;
     private final ProposalValueNormalizer normalizer;
     private final ProposalRuleValidator validator;
 
@@ -50,6 +50,7 @@ public class ProposalService {
      * @param archiveRepository     The archive repository used to store proposal changes.
      * @param participantRepository The participant repository used to store personal-space changes.
      * @param configurationService  The configuration service used to resolve fields and categories.
+     * @param notificationService   The notification service used to notify participant of a withdrawal
      * @param normalizer            The proposal value normalizer.
      * @param validator             The proposal rule validator.
      */
@@ -59,6 +60,7 @@ public class ProposalService {
             ArchiveRepository archiveRepository,
             ParticipantRepository participantRepository,
             ConfigurationService configurationService,
+            NotificationService notificationService,
             ProposalValueNormalizer normalizer,
             ProposalRuleValidator validator
     ) {
@@ -67,6 +69,7 @@ public class ProposalService {
         this.archiveRepository = archiveRepository;
         this.participantRepository = participantRepository;
         this.configurationService = configurationService;
+        this.notificationService = notificationService;
         this.normalizer = normalizer;
         this.validator = validator;
     }
@@ -180,9 +183,7 @@ public class ProposalService {
         if (proposal == null || proposal.getCurrentStatus() != ProposalStatus.OPEN) {
             return false;
         }
-
-        LocalDate deadline = validator.parseIsoDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
-        if (deadline == null || LocalDate.now().isAfter(deadline)) {
+        if (!validator.isSubscriptionWindowOpen(proposal)) {
             return false;
         }
 
@@ -198,6 +199,100 @@ public class ProposalService {
 
         archive.saveProposal(proposal);
         archiveRepository.write(archive);
+        return true;
+    }
+
+    /**
+     * Returns the open proposals to which the participant is currently subscribed.
+     *
+     * @param participant The participant whose subscriptions must be read.
+     * @return An immutable list of subscribed open proposals.
+     */
+    public List<Proposal> getSubscribedOpenProposals(Participant participant) {
+        if (participant == null) {
+            return List.of();
+        }
+
+        List<Proposal> subscribedProposals = new ArrayList<>();
+        for (Proposal proposal : archive.getByStatus(ProposalStatus.OPEN)) {
+            if (proposal != null
+                    && validator.isSubscriptionWindowOpen(proposal)
+                    && containsSubscriber(proposal, participant.getUsername())) {
+                subscribedProposals.add(proposal);
+            }
+        }
+        return List.copyOf(subscribedProposals);
+    }
+
+    /**
+     * Removes a participant subscription from an open proposal while the deadline is still valid.
+     *
+     * @param participant The participant canceling the subscription.
+     * @param proposalId  The target proposal id.
+     * @return {@code true} if the cancellation succeeds, {@code false} otherwise.
+     */
+    public boolean unsubscribeParticipantFromProposal(Participant participant, int proposalId) {
+        if (participant == null) {
+            return false;
+        }
+
+        Proposal proposal = archive.findById(proposalId);
+        if (proposal == null || proposal.getCurrentStatus() != ProposalStatus.OPEN) {
+            return false;
+        }
+        if (!validator.isSubscriptionWindowOpen(proposal)) {
+            return false;
+        }
+        if (!proposal.removeSubscriber(participant.getUsername())) {
+            return false;
+        }
+
+        archive.saveProposal(proposal);
+        archiveRepository.write(archive);
+        return true;
+    }
+
+    /**
+     * Returns the proposals that can still be withdrawn by a configurator.
+     *
+     * @return An immutable list of withdrawable proposals.
+     */
+    public List<Proposal> getWithdrawableProposals() {
+        List<Proposal> withdrawable = new ArrayList<>();
+        for (Proposal proposal : archive.getProposals()) {
+            if (validator.canWithdrawProposal(proposal)) {
+                withdrawable.add(proposal);
+            }
+        }
+        return List.copyOf(withdrawable);
+    }
+
+    /**
+     * Withdraws an open or confirmed proposal and notifies its subscribers.
+     *
+     * @param proposal The proposal to withdraw.
+     * @return {@code true} if the withdrawal succeeds, {@code false} otherwise.
+     */
+    public boolean withdrawProposal(Proposal proposal) {
+        if (proposal == null) {
+            return false;
+        }
+
+        Proposal persisted = archive.findById(proposal.getId());
+        if (!validator.canWithdrawProposal(persisted)) {
+            return false;
+        }
+        if (!persisted.markAsWithdrawed()) {
+            return false;
+        }
+
+        archive.saveProposal(persisted);
+        archiveRepository.write(archive);
+
+        boolean participantsChanged = notificationService.notifyProposalWithdrawed(persisted);
+        if (participantsChanged) {
+            participantRepository.writeAll(participants);
+        }
         return true;
     }
 
@@ -244,5 +339,25 @@ public class ProposalService {
      */
     private <T> boolean isInvalidIndex(int index, List<T> list) {
         return index < 0 || index >= list.size();
+    }
+
+    /**
+     * Checks whether the given proposal already contains the provided subscriber.
+     *
+     * @param proposal  The proposal to inspect.
+     * @param username  The username to search for.
+     * @return {@code true} if the proposal already contains the subscriber, {@code false} otherwise.
+     */
+    private boolean containsSubscriber(Proposal proposal, String username) {
+        if (proposal == null || username == null) {
+            return false;
+        }
+
+        for (String subscriber : proposal.getSubscribers()) {
+            if (subscriber != null && subscriber.equalsIgnoreCase(username.trim())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

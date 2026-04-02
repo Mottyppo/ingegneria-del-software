@@ -40,7 +40,10 @@
           "timestamp": "2026-03-25T01:27:19.383615"
         }
       ],
-      "subscribers": []
+      "subscribers": [
+        "mottyppo",
+        "sbiribillo"
+      ]
     },
     {
       "id": 2,
@@ -115,7 +118,7 @@
         "Quota individuale": "DECIMAL",
         "Certificato medico": "BOOLEAN"
       },
-      "currentStatus": "OPEN",
+      "currentStatus": "WITHDRAWED",
       "statusHistory": [
         {
           "status": "CREATED",
@@ -128,6 +131,10 @@
         {
           "status": "OPEN",
           "timestamp": "2026-03-27T18:17:50.992588"
+        },
+        {
+          "status": "WITHDRAWED",
+          "timestamp": "2026-04-02T14:54:59.648929"
         }
       ],
       "subscribers": []
@@ -163,6 +170,97 @@
           "status": "CREATED",
           "timestamp": "2026-03-27T18:19:10.785695"
         }
+      ],
+      "subscribers": []
+    },
+    {
+      "id": 5,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Pasquetta alcolina",
+        "Numero di partecipanti": "1",
+        "Termine ultimo di iscrizione": "2026-04-02",
+        "Luogo": "Pozzolengo",
+        "Data": "2026-04-06",
+        "Data conclusiva": "2026-04-06",
+        "Ora": "09:00",
+        "Quota individuale": "10.5",
+        "Note": "Ricordarsi di portare il vino, il pane e il salame",
+        "Certificato medico": "false"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "CREATED",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-02T14:58:18.3956"
+        }
+      ],
+      "subscribers": []
+    },
+    {
+      "id": 6,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Pasquetta alcolica",
+        "Numero di partecipanti": "1",
+        "Termine ultimo di iscrizione": "2026-04-01",
+        "Luogo": "Pozzolengo",
+        "Data": "2026-04-06",
+        "Data conclusiva": "2026-04-06",
+        "Ora": "09:00",
+        "Quota individuale": "10.5",
+        "Note": "ricordasi di portare vino, birra, pane e salame",
+        "Certificato medico": "false"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "WITHDRAWED",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-02T15:00:00.763207"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-04-02T15:00:00.766073"
+        },
+        {
+          "status": "OPEN",
+          "timestamp": "2026-04-02T15:00:17.091736"
+        },
+        {
+          "status": "CONFIRMED",
+          "timestamp": "2026-04-02T15:03:17.557108"
+        },
+        {
+          "status": "WITHDRAWED",
+          "timestamp": "2026-04-02T15:05:19.049604"
+        }
+      ],
+      "subscribers": [
+        "mottyppo"
       ]
     }
   ]

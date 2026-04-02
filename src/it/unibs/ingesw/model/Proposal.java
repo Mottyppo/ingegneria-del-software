@@ -117,6 +117,32 @@ public class Proposal {
     }
 
     /**
+     * Attempts to remove an existing subscriber from this proposal.
+     *
+     * @param username The username of the subscriber to remove.
+     * @return {@code true} if the subscriber was removed, {@code false} otherwise.
+     */
+    public boolean removeSubscriber(String username) {
+        ensureSubscribers();
+        String normalized = username == null ? null : username.trim();
+        if (normalized == null || normalized.isBlank()) {
+            return false;
+        }
+        if (currentStatus != ProposalStatus.OPEN) {
+            return false;
+        }
+
+        for (int i = 0; i < subscribers.size(); i++) {
+            String subscribed = subscribers.get(i);
+            if (subscribed != null && subscribed.equalsIgnoreCase(normalized)) {
+                subscribers.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Retrieves the publication date of the proposal.
      * <p>
      * The publication date is determined by finding the most recent timestamp
@@ -200,6 +226,19 @@ public class Proposal {
             return false;
         }
         appendState(ProposalStatus.CLOSE);
+        return true;
+    }
+
+    /**
+     * Marks the proposal as withdrawn.
+     *
+     * @return {@code true} if transition is accepted, {@code false} otherwise.
+     */
+    public boolean markAsWithdrawed() {
+        if (currentStatus != ProposalStatus.OPEN && currentStatus != ProposalStatus.CONFIRMED) {
+            return false;
+        }
+        appendState(ProposalStatus.WITHDRAWED);
         return true;
     }
 

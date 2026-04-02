@@ -78,6 +78,21 @@ public class ProposalTest {
     }
 
     @Test
+    void removeSubscribersOnlyWhenOpenAndAllowResubscription() {
+        Proposal proposal = new Proposal(8, "Sport", Map.of("Titolo", "Torneo"));
+
+        assertFalse(proposal.removeSubscriber("mario"));
+        assertTrue(proposal.markAsValid());
+        assertTrue(proposal.markAsOpen());
+        assertTrue(proposal.addSubscriber("mario", 2));
+
+        assertTrue(proposal.removeSubscriber("MARIO"));
+        assertTrue(proposal.getSubscribers().isEmpty());
+        assertTrue(proposal.addSubscriber("mario", 2));
+        assertEquals(1, proposal.getSubscribers().size());
+    }
+
+    @Test
     void transitionFromOpenToConfirmedToClose() {
         Proposal proposal = new Proposal(5, "Gite", Map.of("Titolo", "Montisola"));
         assertTrue(proposal.markAsValid());
@@ -99,5 +114,40 @@ public class ProposalTest {
         assertFalse(proposal.markAsClose());
 
         assertEquals(ProposalStatus.CANCELED, proposal.getCurrentStatus());
+    }
+
+    @Test
+    void transitionFromOpenOrConfirmedToWithdrawed() {
+        Proposal openProposal = new Proposal(9, "Gite", Map.of("Titolo", "Weekend"));
+        assertTrue(openProposal.markAsValid());
+        assertTrue(openProposal.markAsOpen());
+        assertTrue(openProposal.markAsWithdrawed());
+        assertEquals(ProposalStatus.WITHDRAWED, openProposal.getCurrentStatus());
+        assertEquals(ProposalStatus.WITHDRAWED, openProposal.getStatusHistory().getLast().getStatus());
+
+        Proposal confirmedProposal = new Proposal(10, "Arte", Map.of("Titolo", "Mostra"));
+        assertTrue(confirmedProposal.markAsValid());
+        assertTrue(confirmedProposal.markAsOpen());
+        assertTrue(confirmedProposal.markAsConfirmed());
+        assertTrue(confirmedProposal.markAsWithdrawed());
+        assertEquals(ProposalStatus.WITHDRAWED, confirmedProposal.getCurrentStatus());
+        assertEquals(ProposalStatus.WITHDRAWED, confirmedProposal.getStatusHistory().getLast().getStatus());
+    }
+
+    @Test
+    void rejectWithdrawedTransitionFromUnsupportedStates() {
+        Proposal createdProposal = new Proposal(11, "Cinema", Map.of("Titolo", "Rassegna"));
+        assertFalse(createdProposal.markAsWithdrawed());
+
+        Proposal validProposal = new Proposal(12, "Cinema", Map.of("Titolo", "Rassegna 2"));
+        assertTrue(validProposal.markAsValid());
+        assertFalse(validProposal.markAsWithdrawed());
+
+        Proposal closedProposal = new Proposal(13, "Cinema", Map.of("Titolo", "Rassegna 3"));
+        assertTrue(closedProposal.markAsValid());
+        assertTrue(closedProposal.markAsOpen());
+        assertTrue(closedProposal.markAsConfirmed());
+        assertTrue(closedProposal.markAsClose());
+        assertFalse(closedProposal.markAsWithdrawed());
     }
 }

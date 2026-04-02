@@ -118,7 +118,8 @@ public class ParticipantController {
                     interaction.showBoard(proposalService.getBoardByCategory());
                 }
                 case 2 -> subscribeToOpenProposal(participant);
-                case 3 -> openPersonalSpace(participant);
+                case 3 -> unsubscribeFromOpenProposal(participant);
+                case 4 -> openPersonalSpace(participant);
                 default -> {
                     // Menu handles bounds; this branch is kept for defensive completeness.
                 }
@@ -142,6 +143,24 @@ public class ParticipantController {
         Proposal selected = openProposals.get(index);
         boolean subscribed = proposalService.subscribeParticipantToProposal(participant, selected.getId());
         interaction.printSubscriptionResult(subscribed);
+    }
+
+    /**
+     * Handles the cancellation of a participant subscription to an open proposal.
+     *
+     * @param participant The participant canceling the subscription.
+     */
+    private void unsubscribeFromOpenProposal(Participant participant) {
+        proposalLifecycleService.refreshProposalLifecycle();
+        List<Proposal> subscribedProposals = proposalService.getSubscribedOpenProposals(participant);
+        int index = interaction.chooseSubscribedOpenProposal(subscribedProposals);
+        if (index < 0) {
+            return;
+        }
+
+        Proposal selected = subscribedProposals.get(index);
+        boolean unsubscribed = proposalService.unsubscribeParticipantFromProposal(participant, selected.getId());
+        interaction.printUnsubscriptionResult(unsubscribed);
     }
 
     /**

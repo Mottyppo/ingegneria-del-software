@@ -31,7 +31,7 @@ import java.util.Set;
  * <ul>
  *   <li>Handles configurator login and first-access credential updates.</li>
  *   <li>Drives configuration and category management flows.</li>
- *   <li>Handles proposal creation, publication, and archive visualization.</li>
+ *   <li>Handles proposal creation, publication, withdrawal and archive visualization.</li>
  * </ul>
  */
 public class ConfiguratorController {
@@ -402,7 +402,8 @@ public class ConfiguratorController {
                 case 0 -> exit = true;
                 case 1 -> createProposal();
                 case 2 -> publishValidProposal();
-                case 3 -> {
+                case 3 -> withdrawProposal();
+                case 4 -> {
                     proposalLifecycleService.refreshProposalLifecycle();
                     interaction.showBoard(proposalService.getBoardByCategory());
                 }
@@ -481,6 +482,25 @@ public class ConfiguratorController {
                 proposalService.publishProposal(selected),
                 interaction.proposalPublishSuccessMessage(),
                 interaction.proposalPublishFailureMessage()
+        );
+    }
+
+    /**
+     * Allows the configurator to withdraw one open or confirmed proposal.
+     */
+    private void withdrawProposal() {
+        proposalLifecycleService.refreshProposalLifecycle();
+        List<Proposal> withdrawableProposals = proposalService.getWithdrawableProposals();
+        int index = interaction.chooseWithdrawableProposal(withdrawableProposals);
+        if (index < 0) {
+            return;
+        }
+
+        Proposal selected = withdrawableProposals.get(index);
+        executeAndPrint(
+                proposalService.withdrawProposal(selected),
+                interaction.proposalWithdrawSuccessMessage(),
+                interaction.proposalWithdrawFailureMessage()
         );
     }
 

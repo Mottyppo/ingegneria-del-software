@@ -108,6 +108,7 @@ public class ApplicationContext {
                 archiveRepository,
                 participantRepository,
                 configurationService,
+                notificationService,
                 new ProposalValueNormalizer(),
                 proposalRuleValidator
         );

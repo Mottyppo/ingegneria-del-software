@@ -14,7 +14,7 @@ import java.util.List;
  *
  * <p><strong>Features:</strong></p>
  * <ul>
- *   <li>Builds confirmation and cancellation messages through the factory.</li>
+ *   <li>Builds confirmation, cancellation and withdrawal messages through the factory.</li>
  *   <li>Finds participants by username among the loaded users.</li>
  *   <li>Returns whether any participant state has changed.</li>
  * </ul>
@@ -49,6 +49,16 @@ public class NotificationService {
      */
     public boolean notifyProposalCanceled(Proposal proposal) {
         return notifySubscribers(proposal, NotificationFactory.buildProposalCanceledNotification(proposal));
+    }
+
+    /**
+     * Sends a withdrawal notification to all subscribers of a proposal.
+     *
+     * @param proposal The withdrawn proposal.
+     * @return {@code true} if at least one participant changed, {@code false} otherwise.
+     */
+    public boolean notifyProposalWithdrawed(Proposal proposal) {
+        return notifySubscribers(proposal, NotificationFactory.buildProposalWithdrawedNotification(proposal));
     }
 
     /**

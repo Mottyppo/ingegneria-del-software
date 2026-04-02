@@ -1,6 +1,7 @@
 package it.unibs.ingesw.service;
 
 import it.unibs.ingesw.model.Proposal;
+import it.unibs.ingesw.model.ProposalStatus;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -117,6 +118,38 @@ public class ProposalRuleValidator {
     public boolean isDeadlineExpired(Proposal proposal) {
         LocalDate deadline = parseIsoDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
         return deadline != null && LocalDate.now().isAfter(deadline);
+    }
+
+    /**
+     * Checks whether subscriptions and cancellations are still allowed for the given proposal.
+     *
+     * @param proposal The proposal to evaluate.
+     * @return {@code true} if the subscription deadline has not passed yet, {@code false} otherwise.
+     */
+    public boolean isSubscriptionWindowOpen(Proposal proposal) {
+        if (proposal == null) {
+            return false;
+        }
+        LocalDate deadline = parseIsoDate(proposal.getFieldValues().get(DEADLINE_FIELD_NAME));
+        return deadline != null && !LocalDate.now().isAfter(deadline);
+    }
+
+    /**
+     * Checks whether the proposal can still be withdrawn.
+     *
+     * @param proposal The proposal to evaluate.
+     * @return {@code true} if the proposal is open or confirmed and its start date is still in the future.
+     */
+    public boolean canWithdrawProposal(Proposal proposal) {
+        if (proposal == null) {
+            return false;
+        }
+        ProposalStatus status = proposal.getCurrentStatus();
+        if (status != ProposalStatus.OPEN && status != ProposalStatus.CONFIRMED) {
+            return false;
+        }
+        LocalDate startDate = parseIsoDate(proposal.getFieldValues().get(START_DATE_FIELD_NAME));
+        return startDate != null && LocalDate.now().isBefore(startDate);
     }
 
     /**

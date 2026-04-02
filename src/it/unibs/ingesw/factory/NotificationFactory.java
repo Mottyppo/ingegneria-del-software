@@ -27,6 +27,8 @@ public final class NotificationFactory {
             "Promemoria evento -> Data: %s, Ora: %s, Luogo: %s, Quota individuale: %s.";
     private static final String CANCELED_TEMPLATE =
             "Proposta #%d annullata: \"%s\". L'iniziativa non ha raggiunto il numero richiesto di partecipanti entro la chiusura iscrizioni.";
+    private static final String WITHDRAWED_TEMPLATE =
+            "Proposta #%d ritirata: \"%s\". L'iniziativa e' stata ritirata dal configuratore per cause di forza maggiore.";
 
     private NotificationFactory() {
         throw new UnsupportedOperationException(NOT_INSTANTIABLE_MESSAGE);
@@ -60,5 +62,17 @@ public final class NotificationFactory {
         Map<String, String> values = proposal.getFieldValues();
         String title = values.getOrDefault(TITLE_FIELD_NAME, DEFAULT_TITLE);
         return CANCELED_TEMPLATE.formatted(proposal.getId(), title);
+    }
+
+    /**
+     * Builds a withdrawal notification message for a proposal.
+     *
+     * @param proposal The withdrawn proposal.
+     * @return A human-readable notification message.
+     */
+    public static String buildProposalWithdrawedNotification(Proposal proposal) {
+        Map<String, String> values = proposal.getFieldValues();
+        String title = values.getOrDefault(TITLE_FIELD_NAME, DEFAULT_TITLE);
+        return WITHDRAWED_TEMPLATE.formatted(proposal.getId(), title);
     }
 }
