@@ -98,7 +98,7 @@ public class ConfigurationService {
      * @return {@code true} if the field was added, {@code false} otherwise.
      */
     public boolean addCommonField(Field field) {
-        if (field == null || !isFieldNameAvailable(field.getName(), null)) {
+        if (field == null || !isFieldNameAvailableGlobally(field.getName())) {
             return false;
         }
         config.addCommonField(field);
@@ -278,6 +278,47 @@ public class ConfigurationService {
      */
     public boolean isFieldNameAvailableForCategory(String fieldName, Category category) {
         return isFieldNameAvailable(fieldName, category);
+    }
+
+    /**
+     * Checks whether a field name is globally available across shared fields and
+     * all category-specific fields.
+     *
+     * @param fieldName The field name to validate.
+     * @return {@code true} if the name is globally available, {@code false} otherwise.
+     */
+    public boolean isFieldNameAvailableGlobally(String fieldName) {
+        if (!isFieldNameAvailable(fieldName, null)) {
+            return false;
+        }
+
+        String normalized = fieldName.trim();
+        for (Category category : categories) {
+            if (fieldNameExists(category.getSpecificFields(), normalized)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Finds a category by name, ignoring letter case.
+     *
+     * @param name The category name to search for.
+     * @return The matching category, or {@code null} if unavailable.
+     */
+    public Category findCategoryByName(String name) {
+        if (name == null || name.trim().isBlank()) {
+            return null;
+        }
+
+        String normalized = name.trim();
+        for (Category category : categories) {
+            if (category.getName().equalsIgnoreCase(normalized)) {
+                return category;
+            }
+        }
+        return null;
     }
 
     /**

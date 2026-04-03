@@ -262,6 +262,174 @@
       "subscribers": [
         "mottyppo"
       ]
+    },
+    {
+      "id": 7,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Allenamento funzionale al parco",
+        "Numero di partecipanti": "12",
+        "Termine ultimo di iscrizione": "2026-04-20",
+        "Luogo": "Parco Castelli, Brescia",
+        "Data": "2026-04-23",
+        "Data conclusiva": "2026-04-23",
+        "Ora": "18:30",
+        "Quota individuale": "0.0",
+        "Note": "Portare tappetino, acqua e scarpe da ginnastica",
+        "Certificato medico": "false"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "VALID",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-03T17:58:25.691785"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-04-03T17:58:25.694086"
+        }
+      ],
+      "subscribers": []
+    },
+    {
+      "id": 8,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Weekend di orienteering",
+        "Numero di partecipanti": "18",
+        "Termine ultimo di iscrizione": "2026-05-05",
+        "Luogo": "Centro sportivo di Ponte di Legno",
+        "Data": "2026-05-08",
+        "Data conclusiva": "2026-05-10",
+        "Ora": "07:45",
+        "Quota individuale": "35.5",
+        "Note": "Il pernottamento e\u0027 incluso nella quota indicata",
+        "Certificato medico": "true"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "OPEN",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-03T17:58:25.695553"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-04-03T17:58:25.697202"
+        },
+        {
+          "status": "OPEN",
+          "timestamp": "2026-04-03T17:59:17.643108"
+        }
+      ],
+      "subscribers": []
+    },
+    {
+      "id": 9,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Allenamento funzionale al parco",
+        "Numero di partecipanti": "12",
+        "Termine ultimo di iscrizione": "2026-04-20",
+        "Luogo": "Parco Castelli, Brescia",
+        "Data": "2026-04-23",
+        "Data conclusiva": "2026-04-23",
+        "Ora": "18:30",
+        "Quota individuale": "0.0",
+        "Note": "Portare tappetino, acqua e scarpe da ginnastica",
+        "Certificato medico": "false"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "OPEN",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-03T17:58:43.998082"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-04-03T17:58:44.000095"
+        },
+        {
+          "status": "OPEN",
+          "timestamp": "2026-04-03T17:59:21.107198"
+        }
+      ],
+      "subscribers": []
+    },
+    {
+      "id": 10,
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Weekend di orienteering",
+        "Numero di partecipanti": "18",
+        "Termine ultimo di iscrizione": "2026-05-05",
+        "Luogo": "Centro sportivo di Ponte di Legno",
+        "Data": "2026-05-08",
+        "Data conclusiva": "2026-05-10",
+        "Ora": "07:45",
+        "Quota individuale": "35.5",
+        "Note": "Il pernottamento e\u0027 incluso nella quota indicata",
+        "Certificato medico": "true"
+      },
+      "fieldTypes": {
+        "Titolo": "STRING",
+        "Numero di partecipanti": "INTEGER",
+        "Termine ultimo di iscrizione": "DATE",
+        "Luogo": "STRING",
+        "Data": "DATE",
+        "Data conclusiva": "DATE",
+        "Ora": "TIME",
+        "Quota individuale": "DECIMAL",
+        "Note": "STRING",
+        "Certificato medico": "BOOLEAN"
+      },
+      "currentStatus": "VALID",
+      "statusHistory": [
+        {
+          "status": "CREATED",
+          "timestamp": "2026-04-03T17:58:44.002752"
+        },
+        {
+          "status": "VALID",
+          "timestamp": "2026-04-03T17:58:44.003672"
+        }
+      ],
+      "subscribers": []
     }
   ]
 }

@@ -8,6 +8,8 @@ import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
+import it.unibs.ingesw.service.BatchImportReport;
+import it.unibs.ingesw.service.BatchImportService;
 import it.unibs.ingesw.service.AuthenticationService;
 import it.unibs.ingesw.service.ConfigurationService;
 import it.unibs.ingesw.service.ProposalLifecycleService;
@@ -20,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Coordinates CLI workflows dedicated to configurators.
@@ -39,6 +42,7 @@ public class ConfiguratorController {
     private final ConfigurationService configurationService;
     private final ProposalService proposalService;
     private final ProposalLifecycleService proposalLifecycleService;
+    private final BatchImportService batchImportService;
     private final ConfiguratorInteraction interaction;
 
     /**
@@ -51,6 +55,7 @@ public class ConfiguratorController {
         this.configurationService = context.getConfigurationService();
         this.proposalService = context.getProposalService();
         this.proposalLifecycleService = context.getProposalLifecycleService();
+        this.batchImportService = context.getBatchImportService();
         this.interaction = new ConfiguratorInteraction();
     }
 
@@ -180,14 +185,41 @@ public class ConfiguratorController {
                         proposalsMenu();
                     }
                 }
-                case 5 -> {
+                case 5 -> batchImportMenu();
+                case 6 -> {
                     if (requireBaseFields()) {
                         showFullCategories();
                     }
                 }
-                case 6 -> {
+                case 7 -> {
                     if (requireBaseFields()) {
                         showArchive();
+                    }
+                }
+                default -> interaction.printInvalidChoice();
+            }
+        }
+    }
+
+    /**
+     * Displays and handles the batch import menu loop.
+     */
+    private void batchImportMenu() {
+        boolean exit = false;
+
+        while (!exit) {
+            int choice = interaction.chooseBatchImportMenu();
+            switch (choice) {
+                case 0 -> exit = true;
+                case 1 -> executeBatchImport(batchImportService::importFields);
+                case 2 -> {
+                    if (requireBaseFields()) {
+                        executeBatchImport(batchImportService::importCategories);
+                    }
+                }
+                case 3 -> {
+                    if (requireBaseFields()) {
+                        executeBatchImport(batchImportService::importProposals);
                     }
                 }
                 default -> interaction.printInvalidChoice();
@@ -520,7 +552,10 @@ public class ConfiguratorController {
             Set<String> localReservedNames
     ) {
         String name = interaction.readFieldName();
-        boolean takenGlobally = !configurationService.isFieldNameAvailableForCategory(name, contextCategory);
+        boolean takenGlobally = switch (type) {
+            case BASE, COMMON -> !configurationService.isFieldNameAvailableGlobally(name);
+            case SPECIFIC -> !configurationService.isFieldNameAvailableForCategory(name, contextCategory);
+        };
         boolean takenLocally = localReservedNames != null
                 && localReservedNames.contains(name.toLowerCase());
 
@@ -550,6 +585,18 @@ public class ConfiguratorController {
      */
     private void executeAndPrint(boolean result, String successMessage, String failMessage) {
         interaction.printOperationResult(result, successMessage, failMessage);
+    }
+
+    /**
+     * Prompts the user for a file path, executes the provided batch import action,
+     * and displays the resulting report.
+     *
+     * @param importAction The import function to execute, mapping a file path to a {@link BatchImportReport}.
+     */
+    private void executeBatchImport(Function<String, BatchImportReport> importAction) {
+        String path = interaction.readBatchImportPath();
+        BatchImportReport report = importAction.apply(path);
+        interaction.showBatchImportReport(report);
     }
 
     /**

@@ -1,17 +1,5 @@
 [
   {
-    "name": "Sport",
-    "specificFields": [
-      {
-        "name": "Certificato medico",
-        "description": "indica se è richiesto o no il certificato medico",
-        "mandatory": true,
-        "type": "SPECIFIC",
-        "dataType": "BOOLEAN"
-      }
-    ]
-  },
-  {
     "name": "Escursioni",
     "specificFields": [
       {
@@ -23,7 +11,7 @@
       },
       {
         "name": "Pranzo al sacco",
-        "description": "indica se e\u0027 richiesto portare il pranzo al sacco",
+        "description": "indica se e' richiesto portare il pranzo al sacco",
         "mandatory": true,
         "type": "SPECIFIC",
         "dataType": "BOOLEAN"
@@ -35,7 +23,7 @@
     "specificFields": [
       {
         "name": "Libro di riferimento",
-        "description": "testo o opera su cui vertera\u0027 l\u0027iniziativa",
+        "description": "testo o opera su cui vertera' l'iniziativa",
         "mandatory": true,
         "type": "SPECIFIC",
         "dataType": "STRING"

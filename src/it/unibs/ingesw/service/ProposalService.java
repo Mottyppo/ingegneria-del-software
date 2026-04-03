@@ -87,7 +87,30 @@ public class ProposalService {
             return null;
         }
 
-        Category category = categories.get(categoryIndex);
+        return createProposal(categories.get(categoryIndex), rawValues);
+    }
+
+    /**
+     * Creates and persists a proposal by resolving the category through its name.
+     *
+     * @param categoryName The selected category name.
+     * @param rawValues    The raw values provided by the user.
+     * @return The created proposal, or {@code null} when structural validation fails.
+     */
+    public Proposal createProposal(String categoryName, Map<String, String> rawValues) {
+        if (rawValues == null) {
+            return null;
+        }
+
+        Category category = configurationService.findCategoryByName(categoryName);
+        if (category == null) {
+            return null;
+        }
+
+        return createProposal(category, rawValues);
+    }
+
+    private Proposal createProposal(Category category, Map<String, String> rawValues) {
         List<it.unibs.ingesw.model.Field> fields = configurationService.getSharedFieldsForCategory(category);
         Map<String, String> normalized = normalizer.normalizeAndValidateValues(fields, rawValues);
         if (normalized == null) {

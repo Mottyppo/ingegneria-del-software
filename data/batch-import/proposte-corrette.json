@@ -1,0 +1,34 @@
+{
+  "proposals": [
+    {
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Allenamento funzionale al parco",
+        "Numero di partecipanti": "12",
+        "Termine ultimo di iscrizione": "20/04/2026",
+        "Luogo": "Parco Castelli, Brescia",
+        "Data": "23/04/2026",
+        "Data conclusiva": "23/04/2026",
+        "Ora": "18:30",
+        "Quota individuale": "0",
+        "Note": "Portare tappetino, acqua e scarpe da ginnastica",
+        "Certificato medico": "no"
+      }
+    },
+    {
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Weekend di orienteering",
+        "Numero di partecipanti": "18",
+        "Termine ultimo di iscrizione": "05/05/2026",
+        "Luogo": "Centro sportivo di Ponte di Legno",
+        "Data": "08/05/2026",
+        "Data conclusiva": "10/05/2026",
+        "Ora": "07:45",
+        "Quota individuale": "35.50",
+        "Note": "Il pernottamento e' incluso nella quota indicata",
+        "Certificato medico": "si"
+      }
+    }
+  ]
+}

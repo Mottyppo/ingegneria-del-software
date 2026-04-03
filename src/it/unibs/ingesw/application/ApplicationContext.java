@@ -10,11 +10,13 @@ import it.unibs.ingesw.persistence.CategoryRepository;
 import it.unibs.ingesw.persistence.ConfigRepository;
 import it.unibs.ingesw.persistence.ConfiguratorRepository;
 import it.unibs.ingesw.persistence.JsonArchiveRepository;
+import it.unibs.ingesw.persistence.JsonBatchImportReader;
 import it.unibs.ingesw.persistence.JsonCategoryRepository;
 import it.unibs.ingesw.persistence.JsonConfigRepository;
 import it.unibs.ingesw.persistence.JsonConfiguratorRepository;
 import it.unibs.ingesw.persistence.JsonParticipantRepository;
 import it.unibs.ingesw.persistence.ParticipantRepository;
+import it.unibs.ingesw.service.BatchImportService;
 import it.unibs.ingesw.service.AuthenticationService;
 import it.unibs.ingesw.service.ConfigurationService;
 import it.unibs.ingesw.service.NotificationService;
@@ -49,6 +51,7 @@ public class ApplicationContext {
     private final ConfigurationService configurationService;
     private final ProposalLifecycleService proposalLifecycleService;
     private final ProposalService proposalService;
+    private final BatchImportService batchImportService;
 
     /**
      * Creates the application context using the default JSON repositories.
@@ -112,6 +115,11 @@ public class ApplicationContext {
                 new ProposalValueNormalizer(),
                 proposalRuleValidator
         );
+        this.batchImportService = new BatchImportService(
+                configurationService,
+                proposalService,
+                new JsonBatchImportReader()
+        );
 
         authenticationService.initializeDefaultConfiguratorsIfNeeded(
                 DEFAULT_CONFIGURATOR_ONE_USERNAME,
@@ -155,5 +163,14 @@ public class ApplicationContext {
      */
     public ProposalService getProposalService() {
         return proposalService;
+    }
+
+    /**
+     * Returns the batch import service.
+     *
+     * @return The batch import service bound to this context.
+     */
+    public BatchImportService getBatchImportService() {
+        return batchImportService;
     }
 }

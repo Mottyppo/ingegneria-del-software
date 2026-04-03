@@ -1,0 +1,25 @@
+{
+  "commonFields": [
+    {
+      "name": "Note",
+      "description": "duplica un campo comune gia' esistente",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Certificato medico",
+      "description": "confligge con un campo specifico gia' presente nella categoria Sport",
+      "mandatory": true,
+      "type": "COMMON",
+      "dataType": "BOOLEAN"
+    },
+    {
+      "name": "   ",
+      "description": "nome non valido perche' vuoto",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    }
+  ]
+}

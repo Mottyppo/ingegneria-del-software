@@ -64,6 +64,20 @@
       "mandatory": false,
       "type": "COMMON",
       "dataType": "STRING"
+    },
+    {
+      "name": "Abbigliamento consigliato",
+      "description": "indicazioni sull\u0027abbigliamento suggerito per partecipare all\u0027iniziativa",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Contatto organizzatore",
+      "description": "recapito utile del referente a cui chiedere informazioni",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
     }
   ]
 }

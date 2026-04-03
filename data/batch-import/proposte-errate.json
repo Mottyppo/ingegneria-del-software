@@ -1,0 +1,34 @@
+{
+  "proposals": [
+    {
+      "categoryName": "Cinema",
+      "fieldValues": {
+        "Titolo": "Rassegna di film d'autore",
+        "Numero di partecipanti": "25",
+        "Termine ultimo di iscrizione": "20/04/2026",
+        "Luogo": "Cinema Nuovo Eden, Brescia",
+        "Data": "23/04/2026",
+        "Data conclusiva": "23/04/2026",
+        "Ora": "20:30",
+        "Quota individuale": "8",
+        "Note": "Proiezione serale",
+        "Certificato medico": "no"
+      }
+    },
+    {
+      "categoryName": "Sport",
+      "fieldValues": {
+        "Titolo": "Circuito serale in pista",
+        "Numero di partecipanti": "10",
+        "Termine ultimo di iscrizione": "18/04/2026",
+        "Luogo": "Campo sportivo comunale",
+        "Data": "21/04/2026",
+        "Data conclusiva": "21/04/2026",
+        "Ora": "19:15",
+        "Quota individuale": "5",
+        "Playlist allenamento": "rock",
+        "Certificato medico": "si"
+      }
+    }
+  ]
+}

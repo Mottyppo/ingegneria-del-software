@@ -4,6 +4,7 @@ import it.unibs.ingesw.console.format.*;
 import it.unibs.ingesw.console.input.InputData;
 import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.console.table.CommandLineTable;
+import it.unibs.ingesw.service.BatchImportReport;
 import it.unibs.ingesw.model.DataType;
 import it.unibs.ingesw.model.Field;
 import it.unibs.ingesw.model.Proposal;
@@ -88,6 +89,7 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String MAIN_MENU_MANAGE_COMMON = "Gestisci campi comuni";
     private static final String MAIN_MENU_MANAGE_CATEGORIES = "Gestisci categorie";
     private static final String MAIN_MENU_MANAGE_PROPOSALS = "Gestisci proposte";
+    private static final String MAIN_MENU_IMPORT_BATCH = "Importa batch JSON";
     private static final String MAIN_MENU_SHOW_CATEGORIES = "Visualizza categorie e campi";
     private static final String MAIN_MENU_SHOW_ARCHIVE = "Visualizza archivio proposte";
 
@@ -114,6 +116,20 @@ public class ConfiguratorInteraction extends UserInteraction {
     private static final String PROPOSALS_PUBLISH_VALID = "Pubblica proposta valida";
     private static final String PROPOSALS_WITHDRAW = "Ritira proposta aperta o confermata";
     private static final String PROPOSALS_SHOW_BOARD = "Visualizza bacheca per categoria";
+
+    private static final String BATCH_IMPORT_MENU_TITLE = "Importa Batch JSON";
+    private static final String BATCH_IMPORT_FIELDS = "Importa campi";
+    private static final String BATCH_IMPORT_CATEGORIES = "Importa categorie";
+    private static final String BATCH_IMPORT_PROPOSALS = "Importa proposte";
+    private static final String BATCH_IMPORT_PATH_PROMPT = "Percorso file JSON: ";
+    private static final String BATCH_IMPORT_REPORT_TITLE_TEMPLATE = "== Report Import %s ==";
+    private static final String BATCH_IMPORT_SOURCE_TEMPLATE = "File: %s";
+    private static final String BATCH_IMPORT_TOTAL_TEMPLATE = "Totale elementi: %d";
+    private static final String BATCH_IMPORT_IMPORTED_TEMPLATE = "Importati: %d";
+    private static final String BATCH_IMPORT_DISCARDED_TEMPLATE = "Scartati: %d";
+    private static final String BATCH_IMPORT_NOTES_LABEL = "Note:";
+    private static final String BATCH_IMPORT_ISSUES_LABEL = "Segnalazioni:";
+    private static final String BATCH_IMPORT_ENTRY_TEMPLATE = "- %s";
 
     private static final String CHOOSE_COMMON_TO_REMOVE = "Seleziona il campo comune da rimuovere";
     private static final String CHOOSE_COMMON_TO_EDIT = "Seleziona il campo comune da modificare";
@@ -218,6 +234,12 @@ public class ConfiguratorInteraction extends UserInteraction {
             PROPOSALS_SHOW_BOARD
     );
 
+    private static final List<String> BATCH_IMPORT_MENU_ENTRIES = List.of(
+            BATCH_IMPORT_FIELDS,
+            BATCH_IMPORT_CATEGORIES,
+            BATCH_IMPORT_PROPOSALS
+    );
+
     public void printBackEndTitle() {
         printInfo(FormatStrings.addFormat(BACKEND_TITLE, AnsiColors.BLUE, AnsiWeights.BOLD, AnsiDecorations.UNDERLINE));
     }
@@ -284,6 +306,7 @@ public class ConfiguratorInteraction extends UserInteraction {
         entries.add(MAIN_MENU_MANAGE_COMMON);
         entries.add(MAIN_MENU_MANAGE_CATEGORIES);
         entries.add(MAIN_MENU_MANAGE_PROPOSALS);
+        entries.add(MAIN_MENU_IMPORT_BATCH);
         entries.add(MAIN_MENU_SHOW_CATEGORIES);
         entries.add(MAIN_MENU_SHOW_ARCHIVE);
         return new Menu(MAIN_MENU_TITLE, entries, true, Alignment.CENTER, true).choose();
@@ -307,6 +330,10 @@ public class ConfiguratorInteraction extends UserInteraction {
 
     public int chooseProposalsMenu() {
         return new Menu(PROPOSALS_MENU_TITLE, PROPOSALS_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
+    }
+
+    public int chooseBatchImportMenu() {
+        return new Menu(BATCH_IMPORT_MENU_TITLE, BATCH_IMPORT_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
     }
 
     public int chooseSpecificFieldsMenu(String categoryName) {
@@ -370,6 +397,10 @@ public class ConfiguratorInteraction extends UserInteraction {
 
     public boolean askPublishProposal() {
         return InputData.readYesOrNo(ASK_PUBLISH_PROPOSAL);
+    }
+
+    public String readBatchImportPath() {
+        return InputData.readNonEmptyString(BATCH_IMPORT_PATH_PROMPT, false).trim();
     }
 
     public void printProposalInvalid() {
@@ -615,6 +646,30 @@ public class ConfiguratorInteraction extends UserInteraction {
             }
             System.out.println();
         }
+    }
+
+    public void showBatchImportReport(BatchImportReport report) {
+        printInfo(BATCH_IMPORT_REPORT_TITLE_TEMPLATE.formatted(report.getImportName()));
+        System.out.printf((BATCH_IMPORT_SOURCE_TEMPLATE) + "%n", report.getSourcePath());
+        System.out.printf((BATCH_IMPORT_TOTAL_TEMPLATE) + "%n", report.getTotalEntries());
+        System.out.printf((BATCH_IMPORT_IMPORTED_TEMPLATE) + "%n", report.getImportedEntries());
+        System.out.printf((BATCH_IMPORT_DISCARDED_TEMPLATE) + "%n", report.getDiscardedEntries());
+
+        if (!report.getNotes().isEmpty()) {
+            System.out.println(BATCH_IMPORT_NOTES_LABEL);
+            for (String note : report.getNotes()) {
+                System.out.printf((BATCH_IMPORT_ENTRY_TEMPLATE) + "%n", note);
+            }
+        }
+
+        if (!report.getIssues().isEmpty()) {
+            System.out.println(BATCH_IMPORT_ISSUES_LABEL);
+            for (String issue : report.getIssues()) {
+                System.out.printf((BATCH_IMPORT_ENTRY_TEMPLATE) + "%n", issue);
+            }
+        }
+
+        System.out.println();
     }
 
     private DataType chooseDataType(String title) {

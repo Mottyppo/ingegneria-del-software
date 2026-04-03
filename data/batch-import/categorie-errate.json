@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Sport",
+    "specificFields": [
+      {
+        "name": "Livello richiesto",
+        "description": "duplica una categoria gia' presente",
+        "mandatory": false,
+        "type": "SPECIFIC",
+        "dataType": "STRING"
+      }
+    ]
+  },
+  {
+    "name": "Cinema",
+    "specificFields": [
+      {
+        "name": "Titolo",
+        "description": "confligge con un campo base gia' esistente",
+        "mandatory": true,
+        "type": "SPECIFIC",
+        "dataType": "STRING"
+      }
+    ]
+  }
+]

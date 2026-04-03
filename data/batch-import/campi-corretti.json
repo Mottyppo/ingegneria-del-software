@@ -1,0 +1,18 @@
+{
+  "commonFields": [
+    {
+      "name": "Abbigliamento consigliato",
+      "description": "indicazioni sull'abbigliamento suggerito per partecipare all'iniziativa",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    },
+    {
+      "name": "Contatto organizzatore",
+      "description": "recapito utile del referente a cui chiedere informazioni",
+      "mandatory": false,
+      "type": "COMMON",
+      "dataType": "STRING"
+    }
+  ]
+}
