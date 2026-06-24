@@ -631,9 +631,8 @@ public class ConfiguratorInteraction extends UserInteraction {
             System.out.printf((ARCHIVE_SUBSCRIBERS_TEMPLATE) + "%n", proposal.getSubscribers());
             System.out.println(ARCHIVE_FIELDS_LABEL);
             for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
-                String formattedValue = FormatValues.formatField(
-                        proposal,
-                        valueEntry.getKey(),
+                String formattedValue = FormatValues.formatByType(
+                        proposal.getFieldType(valueEntry.getKey()),
                         valueEntry.getValue()
                 );
                 System.out.printf((ARCHIVE_FIELD_ENTRY_TEMPLATE) + "%n", valueEntry.getKey(), formattedValue);

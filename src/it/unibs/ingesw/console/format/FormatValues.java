@@ -1,7 +1,6 @@
 package it.unibs.ingesw.console.format;
 
 import it.unibs.ingesw.model.DataType;
-import it.unibs.ingesw.model.Proposal;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -21,7 +20,7 @@ import java.util.Locale;
  * The class provides helpers for rendering dates, times, booleans and numeric
  * values in a user-friendly format (e.g. {@code dd/MM/yyyy}, {@code HH:mm}, euro currency).
  * It also offers higher-level methods to format values based on a {@link DataType}
- * or directly from a {@link Proposal}.
+ * used by the command-line views.
  * </p>
  *
  * <p>
@@ -84,27 +83,6 @@ public final class FormatValues {
         } catch (DateTimeParseException | NumberFormatException e) {
             return rawValue;
         }
-    }
-
-    /**
-     * Formats a field value using metadata from a {@link Proposal}.
-     *
-     * <p>
-     * This method retrieves the {@link DataType} associated with the given field
-     * and delegates formatting to {@link #formatByType(DataType, String)}.
-     * </p>
-     *
-     * @param proposal  The proposal containing field metadata.
-     * @param fieldName The field name.
-     * @param rawValue  The raw value to format.
-     * @return The formatted value, or the raw value if no metadata is available.
-     */
-    public static String formatField(Proposal proposal, String fieldName, String rawValue) {
-        if (proposal == null)
-            return rawValue;
-
-        DataType type = proposal.getFieldType(fieldName);
-        return formatByType(type, rawValue);
     }
 
     /**

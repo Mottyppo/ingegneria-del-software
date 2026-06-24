@@ -21,6 +21,11 @@ import java.util.stream.Collectors;
  * role-specific interaction adapters such as configurator and fruitore views.</p>
  */
 public class UserInteraction {
+    private static final String ACCESS_MENU_TITLE = "Area di Accesso";
+    private static final List<String> ACCESS_MENU_ENTRIES = List.of(
+            "Backend Configuratore",
+            "Frontend Fruitore"
+    );
     private static final String BANNER =
             """
             ██ ▄▄  ▄▄  ▄▄▄▄ ▄▄▄▄▄  ▄▄▄▄ ▄▄  ▄▄ ▄▄▄▄▄ ▄▄▄▄  ▄▄  ▄▄▄    ▄▄▄▄  ▄▄▄▄▄ ▄▄      ▄█████  ▄▄▄  ▄▄▄▄▄ ▄▄▄▄▄▄ ▄▄   ▄▄  ▄▄▄  ▄▄▄▄  ▄▄▄▄▄
@@ -58,6 +63,10 @@ public class UserInteraction {
 
     public void printProgramClosure() {
         printInfo(FormatStrings.addFormat(SHUTDOWN_MESSAGE, AnsiColors.BLUE, AnsiWeights.BOLD, AnsiDecorations.UNDERLINE));
+    }
+
+    public int chooseAccessArea() {
+        return new Menu(ACCESS_MENU_TITLE, ACCESS_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
     }
 
     protected void printInfo(String message) {
@@ -102,9 +111,8 @@ public class UserInteraction {
                         proposal.getSubscribers().size()
                 );
                 for (Map.Entry<String, String> valueEntry : proposal.getFieldValues().entrySet()) {
-                    String formattedValue = FormatValues.formatField(
-                            proposal,
-                            valueEntry.getKey(),
+                    String formattedValue = FormatValues.formatByType(
+                            proposal.getFieldType(valueEntry.getKey()),
                             valueEntry.getValue()
                     );
                     System.out.printf((FIELD_ENTRY_TEMPLATE) + "%n", valueEntry.getKey(), formattedValue);

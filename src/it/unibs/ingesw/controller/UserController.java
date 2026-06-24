@@ -1,11 +1,7 @@
 package it.unibs.ingesw.controller;
 
 import it.unibs.ingesw.application.ApplicationContext;
-import it.unibs.ingesw.console.format.Alignment;
-import it.unibs.ingesw.console.menu.Menu;
 import it.unibs.ingesw.ui.UserInteraction;
-
-import java.util.List;
 
 /**
  * Coordinates the top-level access area of the application.
@@ -21,12 +17,6 @@ import java.util.List;
  * </ul>
  */
 public class UserController {
-    private static final String ACCESS_MENU_TITLE = "Area di Accesso";
-    private static final List<String> ACCESS_MENU_ENTRIES = List.of(
-            "Backend Configuratore",
-            "Frontend Fruitore"
-    );
-
     private final UserInteraction interaction;
     private final ConfiguratorController configuratorController;
     private final ParticipantController participantController;
@@ -52,7 +42,7 @@ public class UserController {
 
         boolean exit = false;
         while (!exit) {
-            int choice = chooseAccessArea();
+            int choice = interaction.chooseAccessArea();
             switch (choice) {
                 case 0 -> exit = true;
                 case 1 -> configuratorController.start();
@@ -69,14 +59,5 @@ public class UserController {
      */
     public void end() {
         interaction.printProgramClosure();
-    }
-
-    /**
-     * Shows the access-area selection menu.
-     *
-     * @return The selected menu index.
-     */
-    private int chooseAccessArea() {
-        return new Menu(ACCESS_MENU_TITLE, ACCESS_MENU_ENTRIES, true, Alignment.CENTER, true).choose();
     }
 }
