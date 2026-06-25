@@ -19,11 +19,11 @@ import it.unibs.ingesw.persistence.ParticipantRepository;
 import it.unibs.ingesw.service.BatchImportService;
 import it.unibs.ingesw.service.AuthenticationService;
 import it.unibs.ingesw.service.ConfigurationService;
-import it.unibs.ingesw.service.NotificationService;
-import it.unibs.ingesw.service.ProposalLifecycleService;
-import it.unibs.ingesw.service.ProposalRuleValidator;
-import it.unibs.ingesw.service.ProposalService;
-import it.unibs.ingesw.service.ProposalValueNormalizer;
+import it.unibs.ingesw.service.proposal.NotificationService;
+import it.unibs.ingesw.service.proposal.ProposalLifecycleService;
+import it.unibs.ingesw.service.proposal.ProposalRuleValidator;
+import it.unibs.ingesw.service.proposal.ProposalService;
+import it.unibs.ingesw.service.proposal.ProposalValueNormalizer;
 
 import java.util.List;
 

@@ -5,8 +5,8 @@ import it.unibs.ingesw.model.Notification;
 import it.unibs.ingesw.model.Participant;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.service.AuthenticationService;
-import it.unibs.ingesw.service.ProposalLifecycleService;
-import it.unibs.ingesw.service.ProposalService;
+import it.unibs.ingesw.service.proposal.ProposalLifecycleService;
+import it.unibs.ingesw.service.proposal.ProposalService;
 import it.unibs.ingesw.ui.ParticipantInteraction;
 
 import java.util.List;

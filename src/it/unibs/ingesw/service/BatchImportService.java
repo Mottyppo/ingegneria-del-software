@@ -6,6 +6,7 @@ import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
 import it.unibs.ingesw.persistence.JsonBatchImportReader;
+import it.unibs.ingesw.service.proposal.ProposalService;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

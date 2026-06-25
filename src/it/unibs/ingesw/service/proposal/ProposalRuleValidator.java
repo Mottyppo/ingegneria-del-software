@@ -1,4 +1,4 @@
-package it.unibs.ingesw.service;
+package it.unibs.ingesw.service.proposal;
 
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;

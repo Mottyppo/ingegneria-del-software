@@ -12,8 +12,8 @@ import it.unibs.ingesw.service.BatchImportReport;
 import it.unibs.ingesw.service.BatchImportService;
 import it.unibs.ingesw.service.AuthenticationService;
 import it.unibs.ingesw.service.ConfigurationService;
-import it.unibs.ingesw.service.ProposalLifecycleService;
-import it.unibs.ingesw.service.ProposalService;
+import it.unibs.ingesw.service.proposal.ProposalLifecycleService;
+import it.unibs.ingesw.service.proposal.ProposalService;
 import it.unibs.ingesw.ui.ConfiguratorInteraction;
 
 import java.util.ArrayList;
