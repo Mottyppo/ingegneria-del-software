@@ -54,9 +54,18 @@ public class ApplicationContext {
     private final BatchImportService batchImportService;
 
     /**
+     * Returns the unique application context instance.
+     *
+     * @return The shared application context.
+     */
+    public static ApplicationContext getInstance() {
+        return Holder.INSTANCE;
+    }
+
+    /**
      * Creates the application context using the default JSON repositories.
      */
-    public ApplicationContext() {
+    private ApplicationContext() {
         this(
                 new JsonConfigRepository(),
                 new JsonCategoryRepository(),
@@ -75,7 +84,7 @@ public class ApplicationContext {
      * @param participantRepository  The participant repository.
      * @param archiveRepository      The proposal archive repository.
      */
-    public ApplicationContext(
+    private ApplicationContext(
             ConfigRepository configRepository,
             CategoryRepository categoryRepository,
             ConfiguratorRepository configuratorRepository,
@@ -172,5 +181,9 @@ public class ApplicationContext {
      */
     public BatchImportService getBatchImportService() {
         return batchImportService;
+    }
+
+    private static class Holder {
+        private static final ApplicationContext INSTANCE = new ApplicationContext();
     }
 }

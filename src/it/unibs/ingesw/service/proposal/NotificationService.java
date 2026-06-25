@@ -1,6 +1,10 @@
 package it.unibs.ingesw.service.proposal;
 
 import it.unibs.ingesw.factory.NotificationFactory;
+import it.unibs.ingesw.factory.ProposalCanceledNotificationFactory;
+import it.unibs.ingesw.factory.ProposalConfirmedNotificationFactory;
+import it.unibs.ingesw.factory.ProposalWithdrawedNotificationFactory;
+import it.unibs.ingesw.model.Notification;
 import it.unibs.ingesw.model.Participant;
 import it.unibs.ingesw.model.Proposal;
 
@@ -21,6 +25,9 @@ import java.util.List;
  */
 public class NotificationService {
     private final List<Participant> participants;
+    private final NotificationFactory confirmedNotificationFactory;
+    private final NotificationFactory canceledNotificationFactory;
+    private final NotificationFactory withdrawedNotificationFactory;
 
     /**
      * Creates a notification service over the loaded participants.
@@ -28,7 +35,32 @@ public class NotificationService {
      * @param participants The loaded participants.
      */
     public NotificationService(List<Participant> participants) {
+        this(
+                participants,
+                ProposalConfirmedNotificationFactory.getInstance(),
+                ProposalCanceledNotificationFactory.getInstance(),
+                ProposalWithdrawedNotificationFactory.getInstance()
+        );
+    }
+
+    /**
+     * Creates a notification service with the provided notification factories.
+     *
+     * @param participants                  The loaded participants.
+     * @param confirmedNotificationFactory  The factory for confirmation notifications.
+     * @param canceledNotificationFactory   The factory for cancellation notifications.
+     * @param withdrawedNotificationFactory The factory for withdrawal notifications.
+     */
+    public NotificationService(
+            List<Participant> participants,
+            NotificationFactory confirmedNotificationFactory,
+            NotificationFactory canceledNotificationFactory,
+            NotificationFactory withdrawedNotificationFactory
+    ) {
         this.participants = participants;
+        this.confirmedNotificationFactory = confirmedNotificationFactory;
+        this.canceledNotificationFactory = canceledNotificationFactory;
+        this.withdrawedNotificationFactory = withdrawedNotificationFactory;
     }
 
     /**
@@ -38,7 +70,7 @@ public class NotificationService {
      * @return {@code true} if at least one participant changed, {@code false} otherwise.
      */
     public boolean notifyProposalConfirmed(Proposal proposal) {
-        return notifySubscribers(proposal, NotificationFactory.buildProposalConfirmedNotification(proposal));
+        return notifySubscribers(proposal, confirmedNotificationFactory.createNotification(proposal));
     }
 
     /**
@@ -48,7 +80,7 @@ public class NotificationService {
      * @return {@code true} if at least one participant changed, {@code false} otherwise.
      */
     public boolean notifyProposalCanceled(Proposal proposal) {
-        return notifySubscribers(proposal, NotificationFactory.buildProposalCanceledNotification(proposal));
+        return notifySubscribers(proposal, canceledNotificationFactory.createNotification(proposal));
     }
 
     /**
@@ -58,7 +90,7 @@ public class NotificationService {
      * @return {@code true} if at least one participant changed, {@code false} otherwise.
      */
     public boolean notifyProposalWithdrawed(Proposal proposal) {
-        return notifySubscribers(proposal, NotificationFactory.buildProposalWithdrawedNotification(proposal));
+        return notifySubscribers(proposal, withdrawedNotificationFactory.createNotification(proposal));
     }
 
     /**
@@ -93,15 +125,15 @@ public class NotificationService {
      * Sends the given message to all subscribers of a proposal.
      *
      * @param proposal The proposal whose subscribers must be notified.
-     * @param message  The message to deliver.
+     * @param notification The notification to deliver.
      * @return {@code true} if at least one notification was added, {@code false} otherwise.
      */
-    private boolean notifySubscribers(Proposal proposal, String message) {
+    private boolean notifySubscribers(Proposal proposal, Notification notification) {
         boolean changed = false;
         for (String username : proposal.getSubscribers()) {
             Participant participant = findParticipantByUsername(username);
             if (participant != null) {
-                changed = participant.getPersonalSpace().addNotification(message) || changed;
+                changed = participant.getPersonalSpace().addNotification(notification) || changed;
             }
         }
         return changed;

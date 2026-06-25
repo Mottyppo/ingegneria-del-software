@@ -14,7 +14,7 @@ public class Main {
      * Starts the application lifecycle.
      */
     public static void main(String[] args) {
-        ApplicationContext context = new ApplicationContext();
+        ApplicationContext context = ApplicationContext.getInstance();
         UserController controller = new UserController(context);
         controller.start();
         controller.end();
