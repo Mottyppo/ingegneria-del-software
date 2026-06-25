@@ -36,6 +36,9 @@ public class ProposalRuleValidator {
      * @return {@code true} if all rules are respected, {@code false} otherwise.
      */
     public boolean checkDomainRules(Map<String, String> values) {
+        if (values == null) {
+            return false;
+        }
         LocalDate deadline = parseIsoDate(values.get(DEADLINE_FIELD_NAME));
         LocalDate startDate = parseIsoDate(values.get(START_DATE_FIELD_NAME));
         LocalDate endDate = parseIsoDate(values.get(END_DATE_FIELD_NAME));
@@ -103,7 +106,11 @@ public class ProposalRuleValidator {
         }
         String normalized = value.replace(',', '.');
         try {
-            return Double.parseDouble(normalized);
+            double parsed = Double.parseDouble(normalized);
+            if (!Double.isFinite(parsed)) {
+                return null;
+            }
+            return parsed;
         } catch (NumberFormatException exception) {
             return null;
         }
