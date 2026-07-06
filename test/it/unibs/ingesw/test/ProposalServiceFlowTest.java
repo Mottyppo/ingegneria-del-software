@@ -1,37 +1,28 @@
 package it.unibs.ingesw.test;
 
-import it.unibs.ingesw.application.ApplicationContext;
-import it.unibs.ingesw.model.Archive;
-import it.unibs.ingesw.model.DataType;
-import it.unibs.ingesw.model.Field;
-import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
-import it.unibs.ingesw.persistence.JsonArchiveRepository;
-import it.unibs.ingesw.persistence.JsonCategoryRepository;
-import it.unibs.ingesw.persistence.JsonConfigRepository;
-import it.unibs.ingesw.persistence.JsonConfiguratorRepository;
-import it.unibs.ingesw.persistence.JsonParticipantRepository;
-import it.unibs.ingesw.service.ConfigurationService;
-import it.unibs.ingesw.service.ProposalService;
+import it.unibs.ingesw.service.proposal.ProposalService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Integration tests for proposal creation and publication flows.
+ * Black-box tests for the proposal creation and publication use cases from version 2.
  */
 public class ProposalServiceFlowTest {
-
     @TempDir
     Path tempDir;
 
@@ -46,96 +37,68 @@ public class ProposalServiceFlowTest {
     }
 
     @Test
-    void createProposalSavesCreatedAndThenValid() {
-        ApplicationContext context = prepareContextWithSportCategory();
+    void configuratorCreatesPublishesAndViewsProposalByCategory() {
+        TestApplicationContext context = BlackBoxTestSupport.configuredSportContext();
         ProposalService proposalService = context.getProposalService();
 
-        Proposal proposal = proposalService.createProposal(0, validRawValues());
+        Proposal proposal = proposalService.createProposal(0, BlackBoxTestSupport.validSportValues(20));
         assertNotNull(proposal);
         assertEquals(ProposalStatus.VALID, proposal.getCurrentStatus());
+        assertEquals(1, proposalService.getValidProposals().size());
 
-        Archive archive = new JsonArchiveRepository().read();
-        assertEquals(1, archive.getProposals().size());
-        assertEquals(ProposalStatus.VALID, archive.getProposals().getFirst().getCurrentStatus());
+        assertTrue(proposalService.publishProposal(proposal));
+        assertTrue(proposalService.getValidProposals().isEmpty());
+        assertEquals(1, proposalService.getOpenProposals().size());
+
+        Map<String, List<Proposal>> board = proposalService.getBoardByCategory();
+        assertEquals(1, board.size());
+        assertEquals(proposal.getId(), board.get("Sport").getFirst().getId());
+
+        TestApplicationContext reloaded = BlackBoxTestSupport.newContext();
+        Proposal persisted = reloaded.getProposalService().getArchivedProposals().getFirst();
+        assertEquals(ProposalStatus.OPEN, persisted.getCurrentStatus());
+        assertNotNull(persisted.getPublicationDate());
     }
 
     @Test
-    void publishSelectivelyOnlyChosenValidProposal() {
-        ApplicationContext context = prepareContextWithSportCategory();
+    void configuratorCannotPublishProposalOutsideValidDateEquivalenceClass() {
+        TestApplicationContext context = BlackBoxTestSupport.configuredSportContext();
+        ProposalService proposalService = context.getProposalService();
+        LocalDate deadline = LocalDate.now().plusDays(2);
+        Map<String, String> values = BlackBoxTestSupport.sportValues(
+                10,
+                deadline,
+                deadline.plusDays(1),
+                deadline.plusDays(1)
+        );
+
+        Proposal proposal = proposalService.createProposal(0, values);
+
+        assertNotNull(proposal);
+        assertEquals(ProposalStatus.CREATED, proposal.getCurrentStatus());
+        assertTrue(proposalService.getValidProposals().isEmpty());
+        assertFalse(proposalService.publishProposal(proposal));
+        assertTrue(proposalService.getOpenProposals().isEmpty());
+
+        Proposal persisted = BlackBoxTestSupport.newContext().getProposalService().getArchivedProposals().getFirst();
+        assertEquals(ProposalStatus.CREATED, persisted.getCurrentStatus());
+    }
+
+    @Test
+    void configuratorCannotCreateProposalWithMissingMandatorySpecificField() {
+        TestApplicationContext context = BlackBoxTestSupport.configuredSportContext();
         ProposalService proposalService = context.getProposalService();
 
-        Proposal createdOnly = proposalService.createProposal(0, invalidRawValues());
-        Proposal valid = proposalService.createProposal(0, validRawValues());
-
-        assertNotNull(createdOnly);
-        assertNotNull(valid);
-        assertEquals(ProposalStatus.CREATED, createdOnly.getCurrentStatus());
-        assertEquals(ProposalStatus.VALID, valid.getCurrentStatus());
-
-        List<Proposal> validProposals = proposalService.getValidProposals();
-        assertEquals(1, validProposals.size());
-        assertEquals(valid.getId(), validProposals.getFirst().getId());
-
-        assertTrue(proposalService.publishProposal(validProposals.getFirst()));
-        assertEquals(0, proposalService.getValidProposals().size());
-
-        Archive archive = new JsonArchiveRepository().read();
-        assertEquals(2, archive.getProposals().size());
-        assertEquals(1, archive.getByStatus(ProposalStatus.CREATED).size());
-        assertEquals(1, archive.getByStatus(ProposalStatus.OPEN).size());
-    }
-
-    private ApplicationContext prepareContextWithSportCategory() {
-        ApplicationContext context = new ApplicationContext(
-                new JsonConfigRepository(),
-                new JsonCategoryRepository(),
-                new JsonConfiguratorRepository(),
-                new JsonParticipantRepository(),
-                new JsonArchiveRepository()
+        Proposal proposal = proposalService.createProposal(
+                0,
+                BlackBoxTestSupport.withoutField(
+                        BlackBoxTestSupport.validSportValues(12),
+                        "Certificato medico"
+                )
         );
-        ConfigurationService configurationService = context.getConfigurationService();
 
-        configurationService.setBaseFields(List.of(
-                new Field("Titolo", "", true, FieldType.BASE, DataType.STRING),
-                new Field("Numero di partecipanti", "", true, FieldType.BASE, DataType.INTEGER),
-                new Field("Termine ultimo di iscrizione", "", true, FieldType.BASE, DataType.DATE),
-                new Field("Luogo", "", true, FieldType.BASE, DataType.STRING),
-                new Field("Data", "", true, FieldType.BASE, DataType.DATE),
-                new Field("Ora", "", true, FieldType.BASE, DataType.TIME),
-                new Field("Quota individuale", "", true, FieldType.BASE, DataType.DECIMAL),
-                new Field("Data conclusiva", "", true, FieldType.BASE, DataType.DATE)
-        ));
-        configurationService.addCategory("Sport", List.of(
-                new Field("Certificato medico", "", true, FieldType.SPECIFIC, DataType.BOOLEAN)
-        ));
-        return context;
-    }
-
-    private Map<String, String> validRawValues() {
-        return Map.of(
-                "Titolo", "Camminata",
-                "Numero di partecipanti", "20",
-                "Termine ultimo di iscrizione", "10/12/2030",
-                "Luogo", "Brescia",
-                "Data", "13/12/2030",
-                "Ora", "15:00",
-                "Quota individuale", "12.5",
-                "Data conclusiva", "13/12/2030",
-                "Certificato medico", "si"
-        );
-    }
-
-    private Map<String, String> invalidRawValues() {
-        return Map.of(
-                "Titolo", "Evento non valido",
-                "Numero di partecipanti", "10",
-                "Termine ultimo di iscrizione", "10/12/2030",
-                "Luogo", "Brescia",
-                "Data", "11/12/2030",
-                "Ora", "18:00",
-                "Quota individuale", "5",
-                "Data conclusiva", "11/12/2030",
-                "Certificato medico", "no"
-        );
+        assertNull(proposal);
+        assertTrue(proposalService.getArchivedProposals().isEmpty());
+        assertTrue(BlackBoxTestSupport.newContext().getProposalService().getArchivedProposals().isEmpty());
     }
 }

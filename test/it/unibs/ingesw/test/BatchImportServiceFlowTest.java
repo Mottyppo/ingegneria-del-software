@@ -1,9 +1,5 @@
 package it.unibs.ingesw.test;
 
-import it.unibs.ingesw.application.ApplicationContext;
-import it.unibs.ingesw.model.DataType;
-import it.unibs.ingesw.model.Field;
-import it.unibs.ingesw.model.FieldType;
 import it.unibs.ingesw.model.Proposal;
 import it.unibs.ingesw.model.ProposalStatus;
 import it.unibs.ingesw.service.BatchImportReport;
@@ -23,10 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Integration tests for the version-5 batch import flows.
+ * Black-box tests for the version-5 batch import use cases.
  */
 public class BatchImportServiceFlowTest {
-
     @TempDir
     Path tempDir;
 
@@ -41,8 +36,8 @@ public class BatchImportServiceFlowTest {
     }
 
     @Test
-    void importFieldsPersistsBaseAndCommonFields() throws IOException {
-        ApplicationContext context = newContext();
+    void importFieldsAcceptsCompleteConfigurationAndPersistsIt() throws IOException {
+        TestApplicationContext context = BlackBoxTestSupport.newContext();
         Path batchFile = writeFile(
                 "fields-batch.json",
                 """
@@ -53,9 +48,9 @@ public class BatchImportServiceFlowTest {
                     { "name": "Termine ultimo di iscrizione", "description": "deadline", "mandatory": true, "type": "BASE", "dataType": "DATE" },
                     { "name": "Luogo", "description": "luogo evento", "mandatory": true, "type": "BASE", "dataType": "STRING" },
                     { "name": "Data", "description": "data inizio", "mandatory": true, "type": "BASE", "dataType": "DATE" },
-                    { "name": "Data conclusiva", "description": "data fine", "mandatory": true, "type": "BASE", "dataType": "DATE" },
                     { "name": "Ora", "description": "ora ritrovo", "mandatory": true, "type": "BASE", "dataType": "TIME" },
-                    { "name": "Quota individuale", "description": "quota", "mandatory": true, "type": "BASE", "dataType": "DECIMAL" }
+                    { "name": "Quota individuale", "description": "quota", "mandatory": true, "type": "BASE", "dataType": "DECIMAL" },
+                    { "name": "Data conclusiva", "description": "data fine", "mandatory": true, "type": "BASE", "dataType": "DATE" }
                   ],
                   "commonFields": [
                     { "name": "Note", "description": "note aggiuntive", "mandatory": false, "type": "COMMON", "dataType": "STRING" }
@@ -70,15 +65,16 @@ public class BatchImportServiceFlowTest {
         assertEquals(9, report.getImportedEntries());
         assertEquals(0, report.getDiscardedEntries());
 
-        ApplicationContext reloaded = newContext();
+        TestApplicationContext reloaded = BlackBoxTestSupport.newContext();
+        assertTrue(reloaded.getConfigurationService().areBaseFieldsSet());
         assertEquals(8, reloaded.getConfigurationService().getBaseFields().size());
-        assertEquals(1, reloaded.getConfigurationService().getCommonFields().size());
         assertEquals("Note", reloaded.getConfigurationService().getCommonFields().getFirst().getName());
     }
 
     @Test
-    void importCategoriesProcessesEachCategoryAtomically() throws IOException {
-        ApplicationContext context = prepareContextWithBaseFields();
+    void importCategoriesKeepsValidEntriesAndDiscardsInvalidEntriesIndependently() throws IOException {
+        TestApplicationContext context = BlackBoxTestSupport.newContext();
+        context.getConfigurationService().setBaseFields(BlackBoxTestSupport.baseFields());
         Path batchFile = writeFile(
                 "categories-batch.json",
                 """
@@ -106,14 +102,14 @@ public class BatchImportServiceFlowTest {
         assertEquals(1, report.getDiscardedEntries());
         assertTrue(report.getIssues().stream().anyMatch(issue -> issue.contains("Titolo")));
 
-        ApplicationContext reloaded = newContext();
+        TestApplicationContext reloaded = BlackBoxTestSupport.newContext();
         assertEquals(1, reloaded.getConfigurationService().getCategories().size());
         assertEquals("Sport", reloaded.getConfigurationService().getCategories().getFirst().getName());
     }
 
     @Test
-    void importProposalsHandlesValidCreatedAndDiscardedEntriesIndependently() throws IOException {
-        ApplicationContext context = prepareContextWithSportCategory();
+    void importProposalsKeepsValidCreatedAndDiscardedEntriesSeparate() throws IOException {
+        TestApplicationContext context = BlackBoxTestSupport.configuredSportContext();
         Path batchFile = writeFile(
                 "proposals-batch.json",
                 """
@@ -183,8 +179,7 @@ public class BatchImportServiceFlowTest {
         assertTrue(report.getIssues().stream().anyMatch(issue -> issue.contains("Cinema")));
         assertTrue(report.getIssues().stream().anyMatch(issue -> issue.contains("Campo fantasma")));
 
-        ApplicationContext reloaded = newContext();
-        List<Proposal> proposals = reloaded.getProposalService().getArchivedProposals().stream()
+        List<Proposal> proposals = BlackBoxTestSupport.newContext().getProposalService().getArchivedProposals().stream()
                 .sorted(Comparator.comparingInt(Proposal::getId))
                 .toList();
         assertEquals(2, proposals.size());
@@ -193,8 +188,8 @@ public class BatchImportServiceFlowTest {
     }
 
     @Test
-    void malformedFileDoesNotModifyPersistedState() throws IOException {
-        ApplicationContext context = newContext();
+    void malformedBatchFileDoesNotModifyPersistedState() throws IOException {
+        TestApplicationContext context = BlackBoxTestSupport.newContext();
         Path malformedFile = writeFile(
                 "malformed-fields.json",
                 """
@@ -209,43 +204,7 @@ public class BatchImportServiceFlowTest {
         assertTrue(report.hasFileError());
         assertEquals(0, report.getTotalEntries());
         assertEquals(0, report.getImportedEntries());
-        assertEquals(0, newContext().getConfigurationService().getBaseFields().size());
-        assertFalse(newContext().getConfigurationService().areBaseFieldsSet());
-    }
-
-    private ApplicationContext newContext() {
-        return new ApplicationContext();
-    }
-
-    private ApplicationContext prepareContextWithBaseFields() {
-        ApplicationContext context = newContext();
-        context.getConfigurationService().setBaseFields(baseFields());
-        return context;
-    }
-
-    private ApplicationContext prepareContextWithSportCategory() {
-        ApplicationContext context = prepareContextWithBaseFields();
-        context.getConfigurationService().addCommonField(
-                new Field("Note", "informazioni aggiuntive", false, FieldType.COMMON, DataType.STRING)
-        );
-        context.getConfigurationService().addCategory(
-                "Sport",
-                List.of(new Field("Certificato medico", "requisito medico", true, FieldType.SPECIFIC, DataType.BOOLEAN))
-        );
-        return context;
-    }
-
-    private List<Field> baseFields() {
-        return List.of(
-                new Field("Titolo", "nome di fantasia", true, FieldType.BASE, DataType.STRING),
-                new Field("Numero di partecipanti", "numero partecipanti", true, FieldType.BASE, DataType.INTEGER),
-                new Field("Termine ultimo di iscrizione", "deadline", true, FieldType.BASE, DataType.DATE),
-                new Field("Luogo", "luogo evento", true, FieldType.BASE, DataType.STRING),
-                new Field("Data", "data inizio", true, FieldType.BASE, DataType.DATE),
-                new Field("Ora", "ora ritrovo", true, FieldType.BASE, DataType.TIME),
-                new Field("Quota individuale", "quota", true, FieldType.BASE, DataType.DECIMAL),
-                new Field("Data conclusiva", "data fine", true, FieldType.BASE, DataType.DATE)
-        );
+        assertFalse(BlackBoxTestSupport.newContext().getConfigurationService().areBaseFieldsSet());
     }
 
     private Path writeFile(String fileName, String contents) throws IOException {
